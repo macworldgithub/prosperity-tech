@@ -141,6 +141,7 @@ export default function Home() {
 
         <View style={tw` my-2`} >
           <TouchableOpacity
+          onPress={() => navigation.navigate("ChatAI")}
             style={[
               tw`py-3 rounded-xl mb-4`,
               { backgroundColor: theme.colors.primary },

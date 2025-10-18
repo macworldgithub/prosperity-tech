@@ -6,4 +6,7 @@ export const theme = {
   gradients: {
     splash: ["#16461c", "#010101", "#0e2c43"], // dark green → black → dark blue
   },
+  AIgradients: {
+    linear: [ "#1D5E8E","#26E359"],
+  },
 };

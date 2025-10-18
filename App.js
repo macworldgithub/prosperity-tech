@@ -8,6 +8,7 @@ import CoverageCheck from './src/Screens/CoverageCheck';
 import Splash from './src/Screens/Splash';
 import Login from './src/Screens/Login';
 import PrivacyConsent from './src/Screens/PrivacyConsent';
+import ChatAI from './src/Screens/ChatAI';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export default function App() {
         <Stack.Screen name="UpdateAddress" component={UpdateAddress} />
         <Stack.Screen name="CoverageCheck" component={CoverageCheck} />
         <Stack.Screen name="PrivacyConsent" component={PrivacyConsent}/>
+        <Stack.Screen name="ChatAI" component={ChatAI} />
       </Stack.Navigator>
     </NavigationContainer>
   );
