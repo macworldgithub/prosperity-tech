@@ -66,6 +66,7 @@ const SignUp = () => {
         },
         body: JSON.stringify(body),
       });
+      
 
       console.log("📥 Raw response status:", response.status);
 
