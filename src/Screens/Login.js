@@ -15,6 +15,7 @@ import tw from "tailwind-react-native-classnames";
 import { theme } from "../utils/theme";
 import fingerprint from "../../assets/finger_print.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL } from "../utils/config";
 
 const Login = () => {
   const navigation = useNavigation();
@@ -24,58 +25,56 @@ const Login = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "https://bele.omnisuiteai.com/auth/login";
-
- 
- const handleLogin = async () => {
-  if (!emailInput || !pinInput) {
-    Alert.alert("Missing Fields", "Please enter both email and PIN.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    console.log("🔄 Logging in with:", { email: emailInput, pin: pinInput });
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: emailInput.trim(),
-        pin: pinInput, // ✅ correct key per Swagger
-      }),
-    });
-
-    const data = await response.json();
-    console.log("📥 Login API Response:", data);
-
-    if (response.status !== 201) {  // ✅ handle 201 Created as success
-      throw new Error(data.message || "Unauthorized");
+  const handleLogin = async () => {
+    if (!emailInput || !pinInput) {
+      Alert.alert("Missing Fields", "Please enter both email and PIN.");
+      return;
     }
 
-    // ✅ Store token
-    await AsyncStorage.setItem("userData", JSON.stringify(data));
-    await AsyncStorage.setItem("access_token", data.access_token);
+    try {
+      setLoading(true);
+      console.log("🔄 Logging in with:", { email: emailInput, pin: pinInput });
 
-    Alert.alert("Success", "Login successful!", [
-      {
-        text: "OK",
-        onPress: () => {
-          setModalVisible(false);
-          navigation.navigate("Home");
+      const response = await fetch(`${API_BASE_URL}auth/login`, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
         },
-      },
-    ]);
-  } catch (error) {
-    console.error("❌ Login Error:", error);
-    Alert.alert("Login Failed", error.message || "Unauthorized access.");
-  } finally {
-    setLoading(false);
-  }
-};
+        body: JSON.stringify({
+          email: emailInput.trim(),
+          pin: pinInput, // ✅ correct key per Swagger
+        }),
+      });
+
+      const data = await response.json();
+      console.log("📥 Login API Response:", data);
+
+      if (response.status !== 201) {
+        // ✅ handle 201 Created as success
+        throw new Error(data.message || "Unauthorized");
+      }
+
+      // ✅ Store token
+      await AsyncStorage.setItem("userData", JSON.stringify(data));
+      await AsyncStorage.setItem("access_token", data.access_token);
+
+      Alert.alert("Success", "Login successful!", [
+        {
+          text: "OK",
+          onPress: () => {
+            setModalVisible(false);
+            navigation.navigate("Home");
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("❌ Login Error:", error);
+      Alert.alert("Login Failed", error.message || "Unauthorized access.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <LinearGradient

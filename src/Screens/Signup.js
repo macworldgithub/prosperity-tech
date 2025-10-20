@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import tw from "tailwind-react-native-classnames";
 import { theme } from "../utils/theme";
 import { storeUserData } from "../utils/storage";
+import { API_BASE_URL } from "../utils/config";
 
 const SignUp = () => {
   const navigation = useNavigation();
@@ -23,8 +24,6 @@ const SignUp = () => {
   const [zip, setZip] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const API_URL = "https://bele.omnisuiteai.com/auth/signup";
 
   const handleSignUp = async () => {
     console.log("➡️ SignUp button clicked");
@@ -55,10 +54,10 @@ const SignUp = () => {
         biometricEnrolled: true,
       };
 
-      console.log("📦 Sending request to:", API_URL);
+      console.log("📦 Sending request to:", API_BASE_URL);
       console.log("📝 Request body:", body);
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${API_BASE_URL}auth/signup`, {
         method: "POST",
         headers: {
           accept: "application/json",
@@ -66,7 +65,6 @@ const SignUp = () => {
         },
         body: JSON.stringify(body),
       });
-      
 
       console.log("📥 Raw response status:", response.status);
 
@@ -75,7 +73,9 @@ const SignUp = () => {
 
       if (!response.ok) {
         console.log("❌ Signup failed");
-        throw new Error(data?.message || `Signup failed (status ${response.status})`);
+        throw new Error(
+          data?.message || `Signup failed (status ${response.status})`
+        );
       }
 
       console.log("✅ Signup successful, storing user data...");
