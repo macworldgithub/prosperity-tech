@@ -1,4 +1,3 @@
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const storeUserData = async (userData) => {
@@ -12,6 +11,9 @@ export const storeUserData = async (userData) => {
 export const getUserData = async () => {
   try {
     const data = await AsyncStorage.getItem("userData");
+    const token = await AsyncStorage.getItem("access_token");
+    console.log("✅ Stored userData:", userData);
+    console.log("✅ Stored token:", token);
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error("Error fetching user data:", error);
