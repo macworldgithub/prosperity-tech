@@ -14,16 +14,53 @@ import { LinearGradient } from "expo-linear-gradient";
 import tw from "tailwind-react-native-classnames";
 import { theme } from "../utils/theme";
 import fingerprint from "../../assets/finger_print.png";
+import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../utils/config";
 
 const Login = () => {
   const navigation = useNavigation();
   const [hasBiometric, setHasBiometric] = useState(false);
-  const [emailInput, setEmailInput] = useState("");
+  const [userIdInput, setUserIdInput] = useState("");
   const [pinInput, setPinInput] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        setHasBiometric(Boolean(hasHardware && isEnrolled));
+      } catch (e) {
+        setHasBiometric(false);
+      }
+    };
+    checkBiometrics();
+  }, []);
+
+  const handleBiometricPress = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate",
+        disableDeviceFallback: false,
+        cancelLabel: "Cancel",
+      });
+      if (result.success) {
+        await AsyncStorage.setItem("lastEmail", emailInput.trim());
+        await AsyncStorage.setItem("lastPin", pinInput);
+        navigation.navigate("PrivacyConsent");
+        return;
+      }
+      Alert.alert("Authentication Failed", "Please try again or use PIN.");
+    } catch (e) {
+      Alert.alert(
+        "Biometrics Unavailable",
+        "Your device may not support or have biometrics set up. Use PIN instead."
+      );
+    }
+  };
 
   const handleLogin = async () => {
     if (!emailInput || !pinInput) {
@@ -75,7 +112,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
   return (
     <LinearGradient
       colors={theme.gradients.splash}
@@ -113,10 +149,10 @@ const Login = () => {
 
           <TouchableOpacity
             style={[
-              tw`py-3 rounded-lg mb-3`,
+              tw` py-3 rounded-lg mb-3`,
               { backgroundColor: theme.colors.primary },
             ]}
-            disabled={!hasBiometric}
+            onPress={handleBiometricPress}
           >
             <Text style={tw`text-white text-center font-semibold`}>
               {hasBiometric ? "Use Biometric Login" : "Biometric Not Available"}
@@ -128,7 +164,7 @@ const Login = () => {
           </Text>
           <TouchableOpacity
             style={[
-              tw`border py-3 rounded-lg mb-3`,
+              tw`border  py-3 rounded-lg mb-3`,
               { borderColor: theme.colors.primary },
             ]}
             onPress={() => setModalVisible(true)}
@@ -139,13 +175,13 @@ const Login = () => {
                 { color: theme.colors.primary },
               ]}
             >
-              Use Email + PIN
+              Use PIN Instead
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              tw`border py-3 rounded-lg`,
+              tw`border  py-3 rounded-lg`,
               { borderColor: theme.colors.primary },
             ]}
             onPress={() => navigation.navigate("SignUp")}
@@ -165,8 +201,6 @@ const Login = () => {
           </Text>
         </View>
       </View>
-
-      {/* Email + PIN Login Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -192,7 +226,10 @@ const Login = () => {
             />
 
             <TextInput
-              style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
+              style={[
+                tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`,
+                { color: "black" },
+              ]}
               placeholder="Enter PIN"
               placeholderTextColor="#9CA3AF"
               value={pinInput}
