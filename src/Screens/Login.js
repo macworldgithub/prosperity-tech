@@ -3,67 +3,83 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
-  Modal,
   TextInput,
+  Modal,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import tw from "tailwind-react-native-classnames";
 import { theme } from "../utils/theme";
-import fingerprint from "../../assets/finger_print.png";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../utils/config";
+import fingerprint from "../../assets/finger_print.png";
 
 const Login = () => {
   const navigation = useNavigation();
   const [hasBiometric, setHasBiometric] = useState(false);
-  const [userIdInput, setUserIdInput] = useState("");
-  const [pinInput, setPinInput] = useState("");
+  const [showBiometricScreen, setShowBiometricScreen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [pinInput, setPinInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  //Check saved user and biometric availability
   useEffect(() => {
-    const checkBiometrics = async () => {
+    const checkAuthStatus = async () => {
       try {
+        const userData = await AsyncStorage.getItem("userData");
         const hasHardware = await LocalAuthentication.hasHardwareAsync();
+
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-        setHasBiometric(Boolean(hasHardware && isEnrolled));
+
+        const biometricAvailable = hasHardware && isEnrolled;
+        setHasBiometric(biometricAvailable);
+
+        // If user data exists, show biometric screen instead of login
+        if (userData && biometricAvailable) {
+          setShowBiometricScreen(true);
+        } else {
+          console.log(
+            "ℹNo saved user or biometrics unavailable, showing login screen..."
+          );
+        }
       } catch (e) {
-        setHasBiometric(false);
+        console.log("Error checking biometric:", e);
       }
     };
-    checkBiometrics();
+    checkAuthStatus();
   }, []);
 
-  const handleBiometricPress = async () => {
+  const handleBiometricAuth = async () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Authenticate",
-        disableDeviceFallback: false,
+        promptMessage: "Authenticate to continue",
         cancelLabel: "Cancel",
       });
 
       if (result.success) {
-        await AsyncStorage.setItem("lastEmail", emailInput.trim());
-        await AsyncStorage.setItem("lastPin", pinInput);
+        const userData = await AsyncStorage.getItem("userData");
 
-        navigation.navigate("Home");
-        return;
+        if (userData) {
+          navigation.replace("Home");
+        } else {
+          Alert.alert("No saved session found. Please log in again.");
+          setShowBiometricScreen(false);
+        }
+      } else {
+        Alert.alert("Authentication Failed", "Please use your PIN instead.");
+        setShowBiometricScreen(false);
       }
-
-      Alert.alert("Authentication Failed", "Please try again or use PIN.");
-    } catch (e) {
-      Alert.alert(
-        "Biometrics Unavailable",
-        "Your device may not support or have biometrics set up. Use PIN instead."
-      );
+    } catch (error) {
+      Alert.alert("Error", "Biometric authentication unavailable.");
+      setShowBiometricScreen(false);
     }
   };
+
   const handleLogin = async () => {
     if (!emailInput || !pinInput) {
       Alert.alert("Missing Fields", "Please enter both email and PIN.");
@@ -72,8 +88,6 @@ const Login = () => {
 
     try {
       setLoading(true);
-      console.log("🔄 Logging in with:", { email: emailInput, pin: pinInput });
-
       const response = await fetch(`${API_BASE_URL}auth/login`, {
         method: "POST",
         headers: {
@@ -82,94 +96,83 @@ const Login = () => {
         },
         body: JSON.stringify({
           email: emailInput.trim(),
-          pin: pinInput, // ✅ correct key per Swagger
+          pin: pinInput,
         }),
       });
 
       const data = await response.json();
-      console.log("📥 Login API Response:", data);
 
       if (response.status !== 201) {
-        // ✅ handle 201 Created as success
-        throw new Error(data.message || "Unauthorized");
+        throw new Error(data.message || "Invalid credentials");
       }
 
-      // ✅ Store token
       await AsyncStorage.setItem("userData", JSON.stringify(data));
       await AsyncStorage.setItem("access_token", data.access_token);
+      await AsyncStorage.setItem("lastEmail", emailInput.trim());
+      await AsyncStorage.setItem("lastPin", pinInput);
 
       Alert.alert("Success", "Login successful!", [
         {
           text: "OK",
           onPress: () => {
             setModalVisible(false);
-            navigation.navigate("Home");
+            navigation.replace("Home");
           },
         },
       ]);
     } catch (error) {
-      console.error("❌ Login Error:", error);
       Alert.alert("Login Failed", error.message || "Unauthorized access.");
     } finally {
       setLoading(false);
     }
   };
-  return (
-    <LinearGradient
-      colors={theme.gradients.splash}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={tw`flex-1`}
-    >
-      <View style={tw`flex-1 items-center justify-center px-6`}>
+
+  if (showBiometricScreen) {
+    return (
+      <LinearGradient
+        colors={theme.gradients.splash}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={tw`flex-1 items-center justify-center px-6`}
+      >
         <View
           style={[
             tw`bg-white rounded-2xl shadow-lg p-6 w-full`,
             { maxWidth: 320 },
           ]}
         >
-          <Text style={tw`text-xl font-bold text-center mb-2`}>
-            Secure Login
+          <Text style={tw`text-xl font-bold text-center mb-4`}>
+            Welcome Back
           </Text>
-          <Text style={tw`text-gray-500 text-sm text-center mb-2`}>
-            Choose your preferred authentication method
+          <Image
+            source={fingerprint}
+            style={tw`w-16 h-16 mx-auto mb-4`}
+            resizeMode="contain"
+          />
+          <Text style={tw`text-gray-500 text-center mb-4`}>
+            Use your fingerprint to unlock your session
           </Text>
-
-          <View style={tw`items-center mb-4`}>
-            <Image
-              source={fingerprint}
-              style={tw`w-14 h-14 mb-2`}
-              resizeMode="contain"
-            />
-            <Text style={tw`text-base font-semibold text-center`}>
-              Biometric Authentication
-            </Text>
-            <Text style={tw`text-gray-500 text-xs text-center`}>
-              Touch the fingerprint sensor or use face recognition
-            </Text>
-          </View>
-
           <TouchableOpacity
+            onPress={handleBiometricAuth}
             style={[
-              tw` py-3 rounded-lg mb-3`,
+              tw`py-3 rounded-lg`,
               { backgroundColor: theme.colors.primary },
             ]}
-            onPress={handleBiometricPress}
           >
             <Text style={tw`text-white text-center font-semibold`}>
-              {hasBiometric ? "Use Biometric Login" : "Biometric Not Available"}
+              Authenticate
             </Text>
           </TouchableOpacity>
 
-          <Text style={tw`text-base font-semibold text-center mt-4 mb-3`}>
-            PIN Login
-          </Text>
           <TouchableOpacity
+            onPress={() => {
+              console.log("🔄 Switching from biometric to PIN login...");
+              setShowBiometricScreen(false);
+            }}
             style={[
-              tw`border  py-3 rounded-lg mb-3`,
+              tw`mt-3 border py-3 rounded-lg`,
               { borderColor: theme.colors.primary },
             ]}
-            onPress={() => setModalVisible(true)}
           >
             <Text
               style={[
@@ -180,64 +183,105 @@ const Login = () => {
               Use PIN Instead
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              tw`border  py-3 rounded-lg`,
-              { borderColor: theme.colors.primary },
-            ]}
-            onPress={() => navigation.navigate("SignUp")}
-          >
-            <Text
-              style={[
-                tw`text-center font-semibold`,
-                { color: theme.colors.primary },
-              ]}
-            >
-              Sign Up
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={tw`text-gray-400 text-xs text-center mt-4`}>
-            Your login attempts are logged for security purposes
-          </Text>
         </View>
+      </LinearGradient>
+    );
+  }
+
+  //Default login screen (first-time)
+  return (
+    <LinearGradient
+      colors={theme.gradients.splash}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={tw`flex-1 items-center justify-center px-6`}
+    >
+      <View
+        style={[
+          tw`bg-white rounded-2xl shadow-lg p-6 w-full`,
+          { maxWidth: 320 },
+        ]}
+      >
+        <Text style={tw`text-xl font-bold text-center mb-4`}>Secure Login</Text>
+
+        <TouchableOpacity
+          style={[
+            tw`border py-3 rounded-lg mb-3`,
+            { borderColor: theme.colors.primary },
+          ]}
+          onPress={() => {
+            setModalVisible(true);
+          }}
+        >
+          <Text
+            style={[
+              tw`text-center font-semibold`,
+              { color: theme.colors.primary },
+            ]}
+          >
+            Use PIN Instead
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            tw`border py-3 rounded-lg`,
+            { borderColor: theme.colors.primary },
+          ]}
+          onPress={() => {
+            navigation.navigate("SignUp");
+          }}
+        >
+          <Text
+            style={[
+              tw`text-center font-semibold`,
+              { color: theme.colors.primary },
+            ]}
+          >
+            Sign Up
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* PIN Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}
       >
         <View
           style={tw`flex-1 justify-center items-center bg-black bg-opacity-50`}
         >
           <View style={[tw`bg-white rounded-2xl p-6 w-4/5`, { maxWidth: 320 }]}>
             <Text style={tw`text-lg font-bold text-center mb-4`}>
-              Email Login
+              PIN Login
             </Text>
 
             <TextInput
               style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
-              placeholder="Enter Email Address"
+              placeholder="Enter Email"
               placeholderTextColor="#9CA3AF"
               value={emailInput}
-              onChangeText={setEmailInput}
-              keyboardType="email-address"
+              onChangeText={(text) => {
+                setEmailInput(text);
+              }}
               autoCapitalize="none"
+              keyboardType="email-address"
             />
 
             <TextInput
-              style={[
-                tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`,
-                { color: "black" },
-              ]}
+              style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
               placeholder="Enter PIN"
               placeholderTextColor="#9CA3AF"
-              value={pinInput}
-              onChangeText={setPinInput}
-              keyboardType="numeric"
               secureTextEntry
+              keyboardType="numeric"
+              value={pinInput}
+              onChangeText={(text) => {
+                setPinInput(text);
+              }}
             />
 
             <TouchableOpacity
@@ -258,15 +302,13 @@ const Login = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
+              onPress={() => {
+                setModalVisible(false);
+              }}
               style={[
                 tw`border py-3 rounded-lg`,
                 { borderColor: theme.colors.primary },
               ]}
-              onPress={() => {
-                setModalVisible(false);
-                setEmailInput("");
-                setPinInput("");
-              }}
             >
               <Text
                 style={[
