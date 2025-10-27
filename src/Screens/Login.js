@@ -47,12 +47,15 @@ const Login = () => {
         disableDeviceFallback: false,
         cancelLabel: "Cancel",
       });
+
       if (result.success) {
         await AsyncStorage.setItem("lastEmail", emailInput.trim());
         await AsyncStorage.setItem("lastPin", pinInput);
-        navigation.navigate("PrivacyConsent");
+
+        navigation.navigate("Home");
         return;
       }
+
       Alert.alert("Authentication Failed", "Please try again or use PIN.");
     } catch (e) {
       Alert.alert(
@@ -61,7 +64,6 @@ const Login = () => {
       );
     }
   };
-
   const handleLogin = async () => {
     if (!emailInput || !pinInput) {
       Alert.alert("Missing Fields", "Please enter both email and PIN.");
