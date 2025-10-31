@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Platform,
 } from "react-native";
@@ -13,7 +12,7 @@ import tw from "tailwind-react-native-classnames";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { ArrowLeft } from "lucide-react-native";
 import { theme } from "../utils/theme";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 const CoverageCheck = ({ navigation }) => {
   const [zip, setZip] = useState("");
 
@@ -39,7 +38,7 @@ const CoverageCheck = ({ navigation }) => {
       ]}
     >
       <ScrollView
-        contentContainerStyle={tw`px-4 pt-4 pb-8`}
+        contentContainerStyle={tw`px-4  pb-8`}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -83,7 +82,10 @@ const CoverageCheck = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={[tw`py-3 rounded-xl`, { backgroundColor: theme.colors.primary }]}
+            style={[
+              tw`py-3 rounded-xl`,
+              { backgroundColor: theme.colors.primary },
+            ]}
             onPress={handleCheck}
           >
             <Text style={tw`text-white text-center font-semibold`}>
