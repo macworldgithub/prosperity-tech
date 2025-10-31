@@ -1,11 +1,5 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import tw from "tailwind-react-native-classnames";
 import { Bell, ArrowRight } from "lucide-react-native";
@@ -13,8 +7,13 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Feather";
 import { theme } from "../utils/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import axios from "axios";
+import { API_BASE_URL } from "../utils/config";
 export default function Home() {
+  // const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const navigation = useNavigation();
 
   const [user, setUser] = useState({
@@ -32,6 +31,36 @@ export default function Home() {
     disputeNotice: true,
   });
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+
+        if (!token) {
+          setError("No authentication token found");
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`${API_BASE_URL}user/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUser(response.data.user);
+
+        console.log("Fetched user data:", response.data);
+        setLoading(false);
+      } catch (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const percentageUsed = Math.round((user.dataUsed / user.dataLimit) * 100);
   const remainingData = (user.dataLimit - user.dataUsed).toFixed(1);
 
@@ -47,11 +76,23 @@ export default function Home() {
           <View style={tw`w-12 h-12 bg-gray-300 rounded-full`} />
           <View style={tw`ml-3`}>
             <Text style={tw`text-black font-bold`}>Welcome</Text>
-            <Text style={tw`text-sm text-gray-400`}>{user.name}</Text>
+
+            {loading && <Text style={tw`text-gray-500`}>Loading...</Text>}
+
+            {error && <Text style={tw`text-red-500`}>Error: {error}</Text>}
+
+            {user && (
+              <View>
+                <Text style={tw`text-base text-black font-semibold`}>
+                  {user.name}
+                </Text>
+                <Text style={tw`text-sm text-gray-500`}>{user.email}</Text>
+              </View>
+            )}
           </View>
           <View style={tw`ml-auto flex-row`}>
             <Bell size={24} color="black" style={tw`mr-4`} />
-           <Icon
+            <Icon
               name="log-out"
               size={22}
               color="black"
@@ -78,10 +119,7 @@ export default function Home() {
                             routes: [{ name: "Login" }],
                           });
                         } catch (error) {
-                          console.error(
-                            "Error clearing AsyncStorage:",
-                            error
-                          );
+                          console.error("Error clearing AsyncStorage:", error);
                         }
                       },
                     },
@@ -94,7 +132,9 @@ export default function Home() {
         </View>
 
         {/* Account Overview */}
-        <View style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}>
+        <View
+          style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}
+        >
           <Text style={tw`font-semibold mb-2`}>Account Overview</Text>
           <View style={tw`flex-row justify-between`}>
             <View>
@@ -118,7 +158,9 @@ export default function Home() {
         </View>
 
         {/* Data Usage */}
-        <View style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}>
+        <View
+          style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}
+        >
           <Text style={tw`font-semibold mb-2`}>Data Usage</Text>
           <Text style={tw`text-black`}>
             This Month: {user.dataUsed} / {user.dataLimit} GB
@@ -139,20 +181,25 @@ export default function Home() {
         </View>
 
         {/* Billing Summary */}
-        <View style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}>
+        <View
+          style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}
+        >
           <Text style={tw`font-semibold mb-2`}>Billing Summary</Text>
           <View style={tw`flex-row justify-between items-center`}>
             <Text style={tw`text-red-600 text-2xl font-bold`}>
-              ${user.bill.toFixed(2)}
+              {/* ${user.bill.toFixed(2)} */}
             </Text>
             <Text style={tw`text-gray-500`}>
-              Due: <Text style={tw`font-semibold text-black`}>{user.dueDate}</Text>
+              Due:{" "}
+              <Text style={tw`font-semibold text-black`}>{user.dueDate}</Text>
             </Text>
           </View>
           <Text style={tw`text-gray-500 mt-1`}>Outstanding Balance</Text>
 
           {user.disputeNotice && (
-            <View style={tw`bg-red-50 border border-red-300 p-2 rounded-lg mt-3`}>
+            <View
+              style={tw`bg-red-50 border border-red-300 p-2 rounded-lg mt-3`}
+            >
               <Text style={tw`text-xs text-red-600`}>
                 Notice: Double charge detected on your May Bill. You can dispute
                 this charge using Bill Query.
@@ -162,7 +209,10 @@ export default function Home() {
 
           <View style={tw`flex-row mt-4`}>
             <TouchableOpacity
-              style={[tw`flex-1 py-2 rounded-xl mr-2 items-center`, { backgroundColor: theme.colors.primary }]}
+              style={[
+                tw`flex-1 py-2 rounded-xl mr-2 items-center`,
+                { backgroundColor: theme.colors.primary },
+              ]}
             >
               <Text style={tw`text-white font-medium`}>Pay Now</Text>
             </TouchableOpacity>
@@ -174,9 +224,9 @@ export default function Home() {
           </View>
         </View>
 
-        <View style={tw` my-2`} >
+        <View style={tw` my-2`}>
           <TouchableOpacity
-          onPress={() => navigation.navigate("ChatAI")}
+            onPress={() => navigation.navigate("ChatAI")}
             style={[
               tw`py-3 rounded-xl mb-4`,
               { backgroundColor: theme.colors.primary },
@@ -218,7 +268,12 @@ export default function Home() {
               onPress={() => navigation.navigate(item.screen)}
             >
               <View style={tw`flex-row items-center`}>
-                <Icon name={item.icon} size={22} color="blue" style={tw`mr-3`} />
+                <Icon
+                  name={item.icon}
+                  size={22}
+                  color="blue"
+                  style={tw`mr-3`}
+                />
                 <View>
                   <Text style={tw`text-black font-medium`}>{item.title}</Text>
                   <Text style={tw`text-gray-500 text-xs mt-1`}>
