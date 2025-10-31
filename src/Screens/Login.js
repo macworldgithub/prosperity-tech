@@ -111,6 +111,8 @@ const Login = () => {
       await AsyncStorage.setItem("lastEmail", emailInput.trim());
       await AsyncStorage.setItem("lastPin", pinInput);
 
+      console.log("✅ User logged in successfully:", data);
+
       Alert.alert("Success", "Login successful!", [
         {
           text: "OK",
