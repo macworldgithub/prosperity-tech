@@ -13,6 +13,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { ArrowLeft } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../utils/theme";
+import { API_BASE_URL } from "../utils/config";
 
 const UpdateAddress = ({ navigation }) => {
   const [street, setStreet] = useState("");
@@ -43,7 +44,7 @@ const UpdateAddress = ({ navigation }) => {
   const fetchCurrentAddress = async (authToken) => {
     try {
       setLoading(true);
-      const response = await fetch("https://bele.omnisuiteai.com/address", {
+      const response = await fetch(`${API_BASE_URL}address`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -134,24 +135,28 @@ const UpdateAddress = ({ navigation }) => {
         <TextInput
           style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
           placeholder="Street Address"
+          placeholderTextColor="gray"
           value={street}
           onChangeText={setStreet}
         />
         <TextInput
           style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
           placeholder="City"
+          placeholderTextColor="gray"
           value={city}
           onChangeText={setCity}
         />
         <TextInput
           style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
           placeholder="State"
+          placeholderTextColor="gray"
           value={state}
           onChangeText={setState}
         />
         <TextInput
           style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
           placeholder="ZIP Code"
+          placeholderTextColor="gray"
           keyboardType="numeric"
           value={zip}
           onChangeText={setZip}

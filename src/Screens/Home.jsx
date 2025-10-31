@@ -8,7 +8,7 @@ import Icon from "react-native-vector-icons/Feather";
 import { theme } from "../utils/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-
+import { API_BASE_URL } from "../utils/config";
 export default function Home() {
   // const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,14 +42,11 @@ export default function Home() {
           return;
         }
 
-        const response = await axios.get(
-          "https://bele.omnisuiteai.com/user/me",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.get(`${API_BASE_URL}user/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         setUser(response.data.user);
 
