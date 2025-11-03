@@ -1,11 +1,11 @@
 import React, { useState } from "react";
+import axios from "axios";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Platform,
 } from "react-native";
@@ -13,19 +13,33 @@ import tw from "tailwind-react-native-classnames";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { ArrowLeft } from "lucide-react-native";
 import { theme } from "../utils/theme";
-
+import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE_URL } from "../utils/config";
 const CoverageCheck = ({ navigation }) => {
   const [zip, setZip] = useState("");
 
   const quickZips = ["12345", "6789", "1111", "9999"];
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!zip) {
       alert("Please enter a ZIP code or address");
       return;
     }
-    console.log("Checking coverage for:", zip);
-    alert(`Checking coverage for: ${zip}`);
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}coverage/${zip}`);
+
+      // Show message coming from backend
+      alert(response.data?.message || "Success");
+      console.log("Coverage response:", response.data);
+    } catch (error) {
+      if (error.response) {
+        alert(error.response.data?.message || "Coverage not found");
+      } else {
+        alert("Network error. Please try again.");
+      }
+      console.log("Coverage check error:", error);
+    }
   };
 
   return (
@@ -39,7 +53,7 @@ const CoverageCheck = ({ navigation }) => {
       ]}
     >
       <ScrollView
-        contentContainerStyle={tw`px-4 pt-4 pb-8`}
+        contentContainerStyle={tw`px-4  pb-8`}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -83,7 +97,10 @@ const CoverageCheck = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={[tw`py-3 rounded-xl`, { backgroundColor: theme.colors.primary }]}
+            style={[
+              tw`py-3 rounded-xl`,
+              { backgroundColor: theme.colors.primary },
+            ]}
             onPress={handleCheck}
           >
             <Text style={tw`text-white text-center font-semibold`}>
