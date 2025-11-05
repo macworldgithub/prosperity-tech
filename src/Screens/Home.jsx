@@ -208,14 +208,14 @@ export default function Home() {
           )}
 
           <View style={tw`flex-row mt-4`}>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[
                 tw`flex-1 py-2 rounded-xl mr-2 items-center`,
                 { backgroundColor: theme.colors.primary },
               ]}
             >
               <Text style={tw`text-white font-medium`}>Pay Now</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity
               style={tw`flex-1 border border-gray-300 py-2 rounded-xl items-center`}
             >
