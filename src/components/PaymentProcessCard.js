@@ -19,6 +19,33 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
 
+  // const handleSubmit = async () => {
+  //   if (!formData.amount || !formData.paymentId || !formData.email) {
+  //     Alert.alert("Error", "Please fill required fields");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+
+  //   try {
+  //     console.log("[PaymentProcessCard] Processing payment", formData);
+  //     // Simulate payment processing
+  //     setTimeout(() => {
+  //       Alert.alert("Success", "Payment processed successfully!");
+  //       const result = { success: true, step: "payment_processed", message: "Payment processed successfully" };
+  //       console.log("[PaymentProcessCard] Payment processed", result);
+  //       onProcessed && onProcessed(result);
+  //       onClose && onClose();
+  //       setLoading(false);
+  //     }, 2000);
+  //   } catch (error) {
+  //     Alert.alert("Error", "Payment processing failed");
+  //     const result = { success: false, step: "payment_failed", message: error?.message || "Payment processing failed" };
+  //     console.log("[PaymentProcessCard] Payment failed", result);
+  //     onProcessed && onProcessed(result);
+  //     setLoading(false);
+  //   }
+  // };
   const handleSubmit = async () => {
     if (!formData.amount || !formData.paymentId || !formData.email) {
       Alert.alert("Error", "Please fill required fields");
@@ -29,21 +56,40 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
 
     try {
       console.log("[PaymentProcessCard] Processing payment", formData);
-      // Simulate payment processing
+
+      // Simulate payment processing (use 2 seconds like first code)
       setTimeout(() => {
         Alert.alert("Success", "Payment processed successfully!");
-        const result = { success: true, step: "payment_processed", message: "Payment processed successfully" };
+
+        const result = {
+          success: true,
+          step: "payment_processed",
+          message: "Payment processed successfully",
+        };
+
         console.log("[PaymentProcessCard] Payment processed", result);
-        onProcessed && onProcessed(result);
-        onClose && onClose();
-        setLoading(false);
+
+        onProcessed?.(result); // Notify parent
+        onClose?.(); // Close payment process card
       }, 2000);
     } catch (error) {
+      console.error("Payment error:", error);
+
       Alert.alert("Error", "Payment processing failed");
-      const result = { success: false, step: "payment_failed", message: error?.message || "Payment processing failed" };
+
+      const result = {
+        success: false,
+        step: "payment_failed",
+        message: error?.message || "Payment processing failed",
+      };
+
       console.log("[PaymentProcessCard] Payment failed", result);
-      onProcessed && onProcessed(result);
-      setLoading(false);
+
+      onProcessed?.(result);
+    } finally {
+      // Ensure loading is stopped after everything
+      setTimeout(() => setLoading(false), 2100);
+      // small delay so loading spinner ends after success alert
     }
   };
 

@@ -196,6 +196,11 @@ const ChatScreen = ({ navigation }) => {
     }
     return false;
   };
+  const handleStartPayment = () => {
+    setShowSignupForm(false); // Hide signup form
+    setShowNumberButtons(false); // Hide number selection
+    setShowPayment(true); // Show payment form
+  };
   const handleSend = async (msgText, retryWithoutSession = false) => {
     if (!msgText || loading) return;
     const userMsg = {
@@ -492,6 +497,12 @@ const ChatScreen = ({ navigation }) => {
       }
     })();
   }, []);
+  useEffect(() => {
+    if (showPayment) {
+      setShowSignupForm(false);
+      setShowNumberButtons(false);
+    }
+  }, [showPayment]);
   return (
     <LinearGradient
       colors={theme.gradients.splash}
@@ -502,10 +513,10 @@ const ChatScreen = ({ navigation }) => {
       {/* Header */}
       <View style={tw`flex-row items-center px-4 py-3 mt-12`}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={tw`text-black text-lg font-semibold ml-16`}>
-          Flying Kiwi Fitness
+        <Text style={tw`text-white text-lg font-semibold ml-16`}>
+          Chat with AI Assistant
         </Text>
       </View>
       {/* Chat Messages */}
@@ -901,14 +912,14 @@ const ChatScreen = ({ navigation }) => {
               onTokenReceived={(token) => {
                 setPaymentToken(token);
                 setShowPayment(false);
+                setShowSignupForm(false); // Add this line
                 setShowTokenCard(true);
                 console.log("[ChatAI] Token received from PaymentCard", token);
-                // Inform assistant/backend of step
                 handleSend("payment token received");
               }}
               onClose={() => {
                 setShowPayment(false);
-                setShowPlans(true);
+                setShowSignupForm(false); // Add this line
               }}
             />
           </View>

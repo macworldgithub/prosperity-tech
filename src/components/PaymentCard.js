@@ -153,10 +153,6 @@
 //   },
 // });
 
-
-
-
-
 // import React, { useEffect } from "react";
 // import {
 //   View,
@@ -223,9 +219,9 @@
 //         },
 //         function(errors, data) {
 //           if (errors) {
-//             window.ReactNativeWebView.postMessage(JSON.stringify({ 
-//               type: 'error', 
-//               message: 'Failed to load credit card form' 
+//             window.ReactNativeWebView.postMessage(JSON.stringify({
+//               type: 'error',
+//               message: 'Failed to load credit card form'
 //             }));
 //             return;
 //           }
@@ -237,9 +233,9 @@
 //       form.onsubmit = function(e) {
 //         e.preventDefault();
 //         if (!trustedFrame) {
-//           window.ReactNativeWebView.postMessage(JSON.stringify({ 
-//             type: 'error', 
-//             message: 'Frame not ready yet' 
+//           window.ReactNativeWebView.postMessage(JSON.stringify({
+//             type: 'error',
+//             message: 'Frame not ready yet'
 //           }));
 //           return;
 //         }
@@ -250,19 +246,19 @@
 //         trustedFrame.submitForm(function(errors, data) {
 //           submitBtn.disabled = false;
 //           submitBtn.textContent = "Submit";
-          
+
 //           if (errors) {
-//             window.ReactNativeWebView.postMessage(JSON.stringify({ 
-//               type: 'error', 
-//               message: 'Error: ' + (errors.message || 'Unknown error') 
+//             window.ReactNativeWebView.postMessage(JSON.stringify({
+//               type: 'error',
+//               message: 'Error: ' + (errors.message || 'Unknown error')
 //             }));
 //             return;
 //           }
 
 //           const token = data?.singleUseToken?.singleUseTokenId;
-//           window.ReactNativeWebView.postMessage(JSON.stringify({ 
-//             type: 'token', 
-//             token: token 
+//           window.ReactNativeWebView.postMessage(JSON.stringify({
+//             type: 'token',
+//             token: token
 //           }));
 //         });
 //       };
@@ -409,9 +405,6 @@
 //     backgroundColor: "white",
 //   },
 // });
-
-
-
 
 import React, { useEffect } from "react";
 import {
