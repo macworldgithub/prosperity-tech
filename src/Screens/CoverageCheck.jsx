@@ -73,18 +73,18 @@ const CoverageCheck = ({ navigation }) => {
             </Text>
           </View>
           <Text style={tw`text-xs text-gray-500 mb-4`}>
-            Enter a ZIP code or address to check if our services are available
+            Enter a Post code or address to check if our services are available
           </Text>
 
           <TextInput
             style={tw`border border-gray-300 rounded-lg px-3 py-2 mb-3`}
-            placeholder="ZIP code (e.g., 12345) or full address"
+            placeholder="Post code (e.g., 12345) or full address"
             value={zip}
             onChangeText={setZip}
           />
 
           {/* Quick ZIPs */}
-          <View style={tw`flex-row flex-wrap mb-2`}>
+          {/* <View style={tw`flex-row flex-wrap mb-2`}>
             {quickZips.map((item, index) => (
               <TouchableOpacity
                 key={index}
@@ -94,7 +94,7 @@ const CoverageCheck = ({ navigation }) => {
                 <Text style={tw`text-gray-700`}>{item}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </View> */}
 
           <TouchableOpacity
             style={[
