@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,46 +6,44 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
-export const PaymentProcessCard = ({ onProcessed, onClose }) => {
+export const PaymentProcessCard = ({
+  custNo: propCustNo,
+  amount: propAmount,
+  email: propEmail,
+  token,
+  plan,
+  onProcessed,
+  onClose,
+}) => {
   const [formData, setFormData] = useState({
-    custNo: "526691",
-    amount: "",
-    paymentId: "",
-    email: "",
-    comment: "",
+    custNo: propCustNo || "",
+    amount: propAmount ? `${propAmount}` : "",
+    paymentId: token || "", // Use token as initial paymentId
+    email: propEmail || "",
+    comment: `Plan: ${plan?.planName || plan?.name}`,
   });
   const [loading, setLoading] = useState(false);
 
-  // const handleSubmit = async () => {
-  //   if (!formData.amount || !formData.paymentId || !formData.email) {
-  //     Alert.alert("Error", "Please fill required fields");
-  //     return;
-  //   }
+  // Prefill on mount - this will update if props change
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      custNo: propCustNo || "",
+      amount: propAmount ? `${propAmount}` : "",
+      paymentId: token || "", // Ensure token is set here
+      email: propEmail || "",
+      comment: `Plan: ${plan?.planName || plan?.name}`,
+    }));
+  }, [propCustNo, propAmount, propEmail, token, plan]);
 
-  //   setLoading(true);
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
-  //   try {
-  //     console.log("[PaymentProcessCard] Processing payment", formData);
-  //     // Simulate payment processing
-  //     setTimeout(() => {
-  //       Alert.alert("Success", "Payment processed successfully!");
-  //       const result = { success: true, step: "payment_processed", message: "Payment processed successfully" };
-  //       console.log("[PaymentProcessCard] Payment processed", result);
-  //       onProcessed && onProcessed(result);
-  //       onClose && onClose();
-  //       setLoading(false);
-  //     }, 2000);
-  //   } catch (error) {
-  //     Alert.alert("Error", "Payment processing failed");
-  //     const result = { success: false, step: "payment_failed", message: error?.message || "Payment processing failed" };
-  //     console.log("[PaymentProcessCard] Payment failed", result);
-  //     onProcessed && onProcessed(result);
-  //     setLoading(false);
-  //   }
-  // };
   const handleSubmit = async () => {
     if (!formData.amount || !formData.paymentId || !formData.email) {
       Alert.alert("Error", "Please fill required fields");
@@ -55,46 +53,39 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
     setLoading(true);
 
     try {
-      console.log("[PaymentProcessCard] Processing payment", formData);
+      // Assume an API endpoint for processing payment; adjust if different
+      // For now, using a placeholder /v1/payments/process - replace with actual if available
+      const response = await fetch(
+        "https://bele.omnisuiteai.com/api/v1/payments/process",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
 
-      // Simulate payment processing (use 2 seconds like first code)
-      setTimeout(() => {
-        Alert.alert("Success", "Payment processed successfully!");
-
-        const result = {
-          success: true,
-          step: "payment_processed",
-          message: "Payment processed successfully",
-        };
-
-        console.log("[PaymentProcessCard] Payment processed", result);
-
-        onProcessed?.(result); // Notify parent
-        onClose?.(); // Close payment process card
-      }, 2000);
-    } catch (error) {
-      console.error("Payment error:", error);
-
-      Alert.alert("Error", "Payment processing failed");
+      const data = await response.json();
+      console.log("[PaymentProcessCard] Payment processing response", data);
+      if (!response.ok) {
+        throw new Error(data.message || "Payment processing failed");
+      }
 
       const result = {
-        success: false,
-        step: "payment_failed",
-        message: error?.message || "Payment processing failed",
+        success: true,
+        message: "Payment processed successfully!",
       };
-
-      console.log("[PaymentProcessCard] Payment failed", result);
-
-      onProcessed?.(result);
+      Alert.alert("Success", result.message);
+      onProcessed(result);
+    } catch (error) {
+      const result = {
+        success: false,
+        message: error.message || "Payment processing failed",
+      };
+      Alert.alert("Error", result.message);
+      onProcessed(result);
     } finally {
-      // Ensure loading is stopped after everything
-      setTimeout(() => setLoading(false), 2100);
-      // small delay so loading spinner ends after success alert
+      setLoading(false);
     }
-  };
-
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -104,15 +95,17 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
       </Text>
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Customer Number"
         value={formData.custNo}
         onChangeText={(text) => handleChange("custNo", text)}
         placeholderTextColor="#999"
+        // editable={false} // Prefilled - display only
+        // selectTextOnFocus={false}
       />
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Amount"
         value={formData.amount}
         onChangeText={(text) => handleChange("amount", text)}
@@ -121,15 +114,17 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
       />
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Payment ID"
         value={formData.paymentId}
         onChangeText={(text) => handleChange("paymentId", text)}
         placeholderTextColor="#999"
+        // editable={true} // Prefilled from token - display only
+        // selectTextOnFocus={f}
       />
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Email"
         value={formData.email}
         onChangeText={(text) => handleChange("email", text)}
@@ -138,14 +133,14 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
       />
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Comment"
         value={formData.comment}
         onChangeText={(text) => handleChange("comment", text)}
         placeholderTextColor="#999"
       />
 
-      <View style={tw`flex-row justify-between`}>
+      <View style={tw`flex-row justify-between mt-4`}>
         <TouchableOpacity
           style={[styles.button, styles.cancelButton, tw`flex-1 mr-2`]}
           onPress={onClose}
@@ -159,9 +154,11 @@ export const PaymentProcessCard = ({ onProcessed, onClose }) => {
           onPress={handleSubmit}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Processing..." : "Submit Payment"}
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Submit Payment</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -184,6 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
     padding: 12,
+    marginBottom: 12,
     fontSize: 14,
     color: "#000",
   },
@@ -194,7 +192,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitButton: {
-    backgroundColor: "#2bb673",
+    backgroundColor: "#10B981",
   },
   cancelButton: {
     backgroundColor: "#ccc",

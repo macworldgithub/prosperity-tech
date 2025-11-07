@@ -6,34 +6,66 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
-export const TokenCard = ({ token, onSuccess, onClose }) => {
-  const [inputToken, setInputToken] = useState(token);
+export const TokenCard = ({ token, custNo, onSuccess, onClose }) => {
+  const [inputToken, setInputToken] = useState(token || "");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async () => {
+    console.log("[DEBUG] handleSubmit called"); // Debug: Function entry
     if (!inputToken.trim()) {
+      console.log("[DEBUG] Empty token check failed"); // Debug: Validation fail
       Alert.alert("Error", "Please enter the token");
       return;
     }
+    console.log("[DEBUG] Token validation passed"); // Debug: After validation
 
     setLoading(true);
+    setMessage("");
+    console.log("[DEBUG] Loading set to true"); // Debug: State change
 
     try {
-      console.log("[TokenCard] Submitting token to backend flow", inputToken);
-      // Simulate API call to add payment method
-      setTimeout(() => {
-        Alert.alert("Success", "Payment method added successfully!");
-        const result = { success: true, step: "token_confirmed", token: inputToken };
-        console.log("[TokenCard] Token confirmed", result);
-        onSuccess && onSuccess(result);
-        setLoading(false);
-      }, 1500);
+      console.log("[DEBUG] Entering try block"); // Debug: Try entry
+      const payload = { custNo, paymentTokenId: inputToken };
+      console.log("[DEBUG] Payload created:", payload); // Enhanced: More visible prefix
+      console.log("[TokenCard] API Payload:", payload); // Original log
+
+      console.log("[DEBUG] About to fetch API"); // Debug: Before fetch
+      const response = await fetch(
+        "https://bele.omnisuiteai.com/api/v1/payments/methods",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      console.log("[DEBUG] Fetch completed, status:", response.status); // Debug: After fetch
+
+      console.log("[DEBUG] About to parse JSON"); // Debug: Before json()
+      const data = await response.json();
+      console.log("[DEBUG] JSON parsed"); // Debug: After json()
+      console.log("[TokenCard] API Response:", data); // Original log
+
+      if (!response.ok) {
+        console.log("[DEBUG] Response not OK, throwing error"); // Debug: Error case
+        throw new Error(data.message || "Failed to add payment method");
+      }
+
+      console.log("[DEBUG] Success - calling onSuccess"); // Debug: Success path
+      Alert.alert("Success", "Payment method added successfully!");
+      onSuccess();
     } catch (error) {
-      Alert.alert("Error", "Failed to add payment method");
-      console.log("[TokenCard] Token submission failed", error?.message || error);
+      console.log("[DEBUG] Entering catch block"); // Debug: Catch entry
+      const errorMsg = error.message || "Something went wrong";
+      setMessage(`Card not added: ${errorMsg}`);
+      console.error("[TokenCard] API Error:", error); // Original error log
+      Alert.alert("Error", errorMsg);
+    } finally {
+      console.log("[DEBUG] Finally block - setting loading false"); // Debug: Finally
       setLoading(false);
     }
   };
@@ -45,14 +77,17 @@ export const TokenCard = ({ token, onSuccess, onClose }) => {
       </Text>
 
       <TextInput
-        style={[styles.input, tw`mb-3`]}
+        style={styles.input}
         placeholder="Enter payment token"
         value={inputToken}
         onChangeText={setInputToken}
         placeholderTextColor="#999"
+        editable={!loading}
       />
 
-      <View style={tw`flex-row justify-between`}>
+      {message ? <Text style={styles.errorText}>{message}</Text> : null}
+
+      <View style={tw`flex-row justify-between mt-4`}>
         <TouchableOpacity
           style={[styles.button, styles.cancelButton, tw`flex-1 mr-2`]}
           onPress={onClose}
@@ -66,9 +101,11 @@ export const TokenCard = ({ token, onSuccess, onClose }) => {
           onPress={handleSubmit}
           disabled={loading || !inputToken.trim()}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Submitting..." : "Submit Token"}
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Submit Token</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -94,6 +131,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#000",
   },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: 4,
+  },
   button: {
     paddingVertical: 12,
     borderRadius: 8,
@@ -101,7 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitButton: {
-    backgroundColor: "#2bb673",
+    backgroundColor: "#10B981",
   },
   cancelButton: {
     backgroundColor: "#ccc",

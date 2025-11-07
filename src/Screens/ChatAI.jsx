@@ -22,14 +22,16 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { PaymentProcessCard } from "../components/PaymentProcessCard";
 import { TokenCard } from "../components/TokenCard";
 import { PaymentCard } from "../components/PaymentCard";
+
 const API_BASE_URL = "https://bele.omnisuiteai.com";
+
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([
     {
       id: 1,
       type: "bot",
-      text: "Hey there 👋 I'm your AI assistant! How can I help you today? You can say 'I want to sign up' to get started.",
+      text: "Hi there, I would be glad to help. How can I help?",
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -44,7 +46,6 @@ const ChatScreen = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDateObj, setDobDateObj] = useState(new Date(1990, 0, 1));
   const { width } = useWindowDimensions();
-  const isSmallScreen = width < 600;
   const [showPayment, setShowPayment] = useState(false);
   const [showTokenCard, setShowTokenCard] = useState(false);
   const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
@@ -52,10 +53,10 @@ const ChatScreen = ({ navigation }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [showPlans, setShowPlans] = useState(false);
-  const [hasSelectedNumber, setHasSelectedNumber] = useState(false);
-  const [selectedNumber, setSelectedNumber] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [showSelectionSummary, setShowSelectionSummary] = useState(false);
+  const [custNo, setCustNo] = useState(null);
+  const [planNo, setPlanNo] = useState(null);
+  const [selectedSim, setSelectedSim] = useState(null);
+  const [submittedSignupDetails, setSubmittedSignupDetails] = useState(null);
   const [formData, setFormData] = useState({
     firstName: "",
     surname: "",
@@ -70,11 +71,29 @@ const ChatScreen = ({ navigation }) => {
   });
   const [formErrors, setFormErrors] = useState({});
   const scrollViewRef = useRef();
+
   // Form handling
   const handleFormChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
+
+  const isDetailsRequest = (text) => {
+    const lowerText = text.toLowerCase();
+    return (
+      lowerText.includes("first name") &&
+      lowerText.includes("surname") &&
+      lowerText.includes("email") &&
+      lowerText.includes("phone") &&
+      lowerText.includes("date of birth") &&
+      lowerText.includes("address") &&
+      lowerText.includes("suburb") &&
+      lowerText.includes("state") &&
+      lowerText.includes("postcode") &&
+      lowerText.includes("pin")
+    );
+  };
+
   const validateForm = () => {
     let isValid = true;
     const errors = {};
@@ -137,16 +156,19 @@ const ChatScreen = ({ navigation }) => {
     setFormErrors(errors);
     return isValid;
   };
+
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
-    const formatted = Object.entries(formData)
+    // Construct full address as per desired payload
+    const fullAddress = `${formData.address}, ${formData.suburb} ${formData.state} ${formData.postcode}, Australia`;
+    const formatted = Object.entries({ ...formData, address: fullAddress })
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");
     try {
-      setLoading(true);
-      // Store the form data before resetting
-      const formDataCopy = { ...formData };
-      // Reset form data first
+      // Store the form data with full address
+      const formDataCopy = { ...formData, address: fullAddress };
+      setSubmittedSignupDetails(formDataCopy);
+      // Reset form data
       setFormData({
         firstName: "",
         surname: "",
@@ -161,52 +183,20 @@ const ChatScreen = ({ navigation }) => {
       });
       // Close the signup form
       setShowSignupForm(false);
-      // Send the form data
+      // Send the form data to chat
       await handleSend(formatted);
-      // After successful signup, show number selection
-      setTimeout(() => {
-        // This will trigger the number selection in handleSend
-        handleSend("Please show available numbers");
-      }, 1000);
     } catch (error) {
       console.error("Form submission error:", error);
       Alert.alert("Error", "Failed to submit form. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
-  const handleSignupIntent = async (userMessage) => {
-    const signupKeywords = ["sign up", "signup", "register", "create account"];
-    const hasSignupIntent = signupKeywords.some((keyword) =>
-      userMessage.toLowerCase().includes(keyword)
-    );
-    if (hasSignupIntent) {
-      setShowSignupForm(true);
-      const botMsg = {
-        id: chat.length + 2,
-        type: "bot",
-        text: "To sign up for a JUSTmobile plan, I'll need some information from you. Could you please provide your first name, surname, email, phone number, date of birth (in YYYY-MM-DD format), address, suburb, state, postcode, and a PIN? Is there anything else I can help with?",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setChat((prev) => [...prev, botMsg]);
-      return true;
-    }
-    return false;
-  };
-  const handleStartPayment = () => {
-    setShowSignupForm(false); // Hide signup form
-    setShowNumberButtons(false); // Hide number selection
-    setShowPayment(true); // Show payment form
-  };
+
   const handleSend = async (msgText, retryWithoutSession = false) => {
-    if (!msgText || loading) return;
+    if (!msgText.trim() || loading) return;
     const userMsg = {
       id: Date.now() + Math.floor(Math.random() * 1000),
       type: "user",
-      text: msgText,
+      text: msgText.trim(),
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -216,19 +206,12 @@ const ChatScreen = ({ navigation }) => {
     setMessage("");
     setLoading(true);
     try {
-      // Check for signup intent
-      if (!retryWithoutSession) {
-        const isSignupIntent = await handleSignupIntent(msgText);
-        if (isSignupIntent) {
-          setLoading(false);
-          return;
-        }
-      }
-      let payload;
-      if (retryWithoutSession || !sessionId) {
-        payload = { query: msgText };
-      } else {
-        payload = { query: msgText, session_id: sessionId };
+      let payload = {
+        query: userMsg.text,
+        brand: "Prosperity-tech",
+      };
+      if (!retryWithoutSession && sessionId) {
+        payload.session_id = sessionId;
       }
       const token = await AsyncStorage.getItem("access_token");
       const headers = {
@@ -258,8 +241,11 @@ const ChatScreen = ({ navigation }) => {
           // ignore storage errors
         }
       }
-      const botText = data?.message || "Sorry, I couldn't understand that.";
-      // Always append the bot message to the chat
+      if (data?.custNo) {
+        setCustNo(data.custNo);
+      }
+      const botText =
+        data?.message || data?.response || "Sorry, I couldn’t understand that.";
       const botMsg = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         type: "bot",
@@ -270,54 +256,42 @@ const ChatScreen = ({ navigation }) => {
         }),
       };
       setChat((prev) => [...prev, botMsg]);
-      // Handle special cases (native UI) regardless of appending message
-      const willHandleNatively =
-        isDetailsRequest(botText) ||
-        (isNumberSelection(botText) && !hasSelectedNumber);
-      if (willHandleNatively) {
-        if (isDetailsRequest(botText)) {
-          // show native signup form
-          setShowSignupForm(true);
-          setShowNumberButtons(false);
-        } else if (isNumberSelection(botText) && !hasSelectedNumber) {
-          const numbers = extractNumbers(botText);
-          setNumberOptions(numbers);
-          setShowNumberButtons(true);
-          setShowSignupForm(false);
-        }
-      } else {
-        setShowSignupForm(false);
-        setShowNumberButtons(false);
-        // Only show the selection summary in the stage between number selection and plan selection
-        if (
-          hasSelectedNumber &&
-          !selectedPlan &&
-          !showPayment &&
-          !showTokenCard &&
-          !showPaymentProcessCard
-        ) {
-          const cidMatch = botText.match(/customer\s*id\s*is\s*(\d+)/i);
-          if (cidMatch && cidMatch[1]) {
-            setSelectedCustomerId(cidMatch[1]);
-          }
-          setShowSelectionSummary(true);
-        }
+
+      // Handle native UI triggers based on bot response
+      if (
+        botText.toLowerCase().includes("please provide your first name") ||
+        isDetailsRequest(botText)
+      ) {
+        setShowSignupForm(true);
       }
+
+      const numbersMatch = botText.match(/04\d{8}/g);
+      if (numbersMatch && numbersMatch.length === 5) {
+        const numbers = extractNumbers(botText);
+        setNumberOptions(numbers);
+        setShowNumberButtons(true);
+      }
+
+      // Plans are fetched in handleNumberSelect, not here
     } catch (error) {
       console.error("Chat error:", error);
-      const errorMsg = {
+      let errorMsg = "Oops! Something went wrong. Please try again.";
+      if (error.message.includes("Failed to fetch")) {
+        errorMsg = "Network error. Please try again.";
+      } else if (error.message.includes("401")) {
+        errorMsg = "Session expired. Please log in again.";
+      }
+      const errorResponse = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         type: "bot",
-        text: error.message.includes("401")
-          ? "Session expired. Please log in again."
-          : `Error: ${error.message}. Please try again.`,
+        text: errorMsg,
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
       };
-      setChat((prev) => [...prev, errorMsg]);
-      // Retry without session if session is invalid
+      setChat((prev) => [...prev, errorResponse]);
+      // Retry without session if invalid
       if (error.message.includes("Invalid session") && !retryWithoutSession) {
         await clearSession();
         setTimeout(() => {
@@ -328,145 +302,114 @@ const ChatScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
+
   const sendMessage = () => {
     handleSend(message);
   };
+
   // Helper functions
-  const isDetailsRequest = (text) => {
-    return (
-      text.toLowerCase().includes("details") ||
-      text.toLowerCase().includes("information")
-    );
-  };
-  const isNumberSelection = (text) => {
-    const lower = text.toLowerCase();
-    const isPrompt = /(choose|select|option|pick|let me know which)/i.test(
-      lower
-    );
-    const isConfirmation = /\bselected\b/.test(lower);
-    return isPrompt && !isConfirmation;
-  };
   const extractNumbers = (text) => {
-    const numbers = text.match(/\d+/g);
-    return numbers ? numbers.slice(0, 5) : [];
+    const matches = text.match(/04\d{8}/g);
+    return matches || [];
   };
+
   const handleNumberSelect = async (number) => {
+    setSelectedSim(number);
     setShowNumberButtons(false);
-    setHasSelectedNumber(true);
-    setSelectedNumber(number);
-    setShowSelectionSummary(true);
+    await handleSend(number);
+    // Fetch plans after number selection
     try {
-      // First, send the selected number (this will append backend's bot message)
-      await handleSend(number);
-      // Then fetch available plans
-      const response = await fetch(
-        "https://bele.omnisuiteai.com/api/v1/plans",
-        {
-          method: "GET",
-          headers: {
-            accept: "application/json",
-            Authorization: `Bearer ${await AsyncStorage.getItem(
-              "access_token"
-            )}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch plans");
+      const plansResponse = await fetch(`${API_BASE_URL}/api/v1/plans`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      if (!plansResponse.ok) {
+        throw new Error("Failed to fetch plans");
       }
-      const data = await response.json();
-      if (data.data && data.data.length > 0) {
-        setPlans(data.data);
-        setShowPlans(true);
-        // Optionally add a hardcoded message if backend doesn't provide one; otherwise, rely on handleSend's response
-        // const planMessage = { ... }; // Commented out to avoid duplication with backend message
-        // setChat((prev) => [...prev, planMessage]);
-      } else {
-        throw new Error("No plans available at the moment");
-      }
-    } catch (error) {
-      console.error("Error in number selection:", error);
-      // Add error message to chat
-      const errorMessage = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        type: "bot",
-        text: `Sorry, we couldn't load the plans. ${error.message}`,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setChat((prev) => [...prev, errorMessage]);
-      // Show the number buttons again to allow retry
-      setShowNumberButtons(true);
-    }
-  };
-  const handlePlanSelect = async (plan) => {
-    try {
-      setLoading(true);
-      setSelectedPlan(plan);
-      setShowPlans(false);
-      // Hide number/Customer ID summary once plan selection begins
-      setShowSelectionSummary(false);
-      // Also clear the flag so it doesn't reappear on later bot messages
-      setHasSelectedNumber(false);
-      // Send selected plan to backend as a string
-      try {
-        const planString = JSON.stringify(plan);
-        handleSend(planString);
-      } catch (e) {
-        // fallback: send basic string if serialization fails
-        handleSend(
-          `Selected plan: ${plan?.name || plan?.planName || "Unknown"} - $${
-            plan?.price ?? ""
-          }/month`
-        );
-      }
-      // Add a message about the selected plan (or rely on backend if sending to it)
-      const planSelectedMessage = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        type: "bot",
-        text: `You've selected the ${plan.name} plan for $${plan.price}/month. Please enter your payment details to proceed.`,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setChat((prev) => [...prev, planSelectedMessage]);
-      // Show payment form after a short delay
-      setTimeout(() => {
-        setShowPayment(true);
-        // Scroll to bottom to show the payment form
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollToEnd({ animated: true });
-        }
-      }, 500);
-    } catch (error) {
-      console.error("Error selecting plan:", error);
-      const errorMessage = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        type: "bot",
-        text: `Sorry, we couldn't process your plan selection. ${
-          error.message || "Please try again."
-        }`,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setChat((prev) => [...prev, errorMessage]);
+      const plansData = await plansResponse.json();
+      setPlans(plansData.data || []);
       setShowPlans(true);
-    } finally {
-      setLoading(false);
+    } catch (plansError) {
+      console.error("Error fetching plans:", plansError);
+      const errorMsg = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        type: "bot",
+        text: "Sorry, couldn't load plans. Please try again.",
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setChat((prev) => [...prev, errorMsg]);
     }
   };
+
+  const handlePlanSelect = async (plan) => {
+    setSelectedPlan(plan);
+    setPlanNo(String(plan.planNo || plan.id || "PLAN001"));
+    setShowPlans(false);
+    // Send selection to backend
+    const planText = `I would like to select the plan: ${
+      plan.planName || plan.name
+    }`;
+    await handleSend(planText);
+    // Show payment
+    setShowPayment(true);
+    // Scroll to bottom
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: true });
+    }
+  };
+
   const clearSession = async () => {
     setSessionId(null);
     try {
       await AsyncStorage.removeItem("chat_session_id");
     } catch (e) {
       // ignore
+    }
+  };
+
+  const handleActivateOrder = async () => {
+    try {
+      // Construct full address from submitted details
+      const fullAddress = `${submittedSignupDetails?.address || ""}, ${
+        submittedSignupDetails?.suburb || ""
+      } ${submittedSignupDetails?.state || ""} ${
+        submittedSignupDetails?.postcode || ""
+      }, Australia`;
+      const payload = {
+        number: selectedSim || "", // Now filled with selected number (was empty)
+        cust: {
+          custNo: custNo || "",
+          address: fullAddress.trim(), // Full constructed address
+          suburb: submittedSignupDetails?.suburb || "",
+          postcode: submittedSignupDetails?.postcode || "",
+          email: submittedSignupDetails?.email || "",
+        },
+        planNo: String(planNo || ""),
+        simNo: "", // Now empty (was filled)
+      };
+      console.log("Activation payload:", payload);
+      const response = await fetch(`${API_BASE_URL}/api/v1/orders/activate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      console.log("Activation result:", result);
+      if (response.ok) {
+        await handleSend("Order successfully activated!");
+      } else {
+        await handleSend(
+          `Activation failed: ${result.message || "Unknown error"}`
+        );
+      }
+    } catch (err) {
+      console.error("Activation failed", err);
+      await handleSend("Order activation failed. Please try again.");
     }
   };
   // Date picker handlers
@@ -478,14 +421,17 @@ const ChatScreen = ({ navigation }) => {
       handleFormChange("dob", formattedDate);
     }
   };
+
   const handleIosDone = () => {
     setShowDatePicker(false);
     const formattedDate = dobDateObj.toISOString().split("T")[0];
     handleFormChange("dob", formattedDate);
   };
+
   const handleIosCancel = () => {
     setShowDatePicker(false);
   };
+
   // Load session on mount
   useEffect(() => {
     (async () => {
@@ -497,12 +443,7 @@ const ChatScreen = ({ navigation }) => {
       }
     })();
   }, []);
-  useEffect(() => {
-    if (showPayment) {
-      setShowSignupForm(false);
-      setShowNumberButtons(false);
-    }
-  }, [showPayment]);
+
   return (
     <LinearGradient
       colors={theme.gradients.splash}
@@ -516,29 +457,14 @@ const ChatScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={tw`text-white text-lg font-semibold ml-16`}>
-          Chat with AI Assistant
+          Chat with AI
         </Text>
       </View>
-      {/* Chat Messages */}
-      {/* <KeyboardAvoidingView
-        style={tw`flex-1`}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 140}
-      >
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={tw`px-4 pb-6`}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() =>
-            scrollViewRef.current?.scrollToEnd({ animated: true })
-          }
-        > */}
 
       <KeyboardAvoidingView
         style={tw`flex-1`}
-        behavior={"padding"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : -55}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 140}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -606,7 +532,7 @@ const ChatScreen = ({ navigation }) => {
                   { backgroundColor: "white", maxWidth: "85%" },
                 ]}
               >
-                <ActivityIndicator size="small" color="#000" />
+                <Text style={tw`text-black`}>Typing...</Text>
               </View>
             </View>
           )}
@@ -628,51 +554,17 @@ const ChatScreen = ({ navigation }) => {
                 ]}
               >
                 <Text style={tw`text-black mb-2`}>Select a number:</Text>
-                <View style={tw`flex-row flex-wrap`}>
-                  {numberOptions.map((number, index) => (
+                <View style={tw`flex-row flex-wrap justify-center`}>
+                  {numberOptions.map((num, index) => (
                     <TouchableOpacity
                       key={index}
-                      onPress={() => handleNumberSelect(number)}
+                      onPress={() => handleNumberSelect(num)}
                       style={[styles.button, styles.submitButton, tw`m-1`]}
                     >
-                      <Text style={styles.buttonText}>{number}</Text>
+                      <Text style={styles.buttonText}>{num}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
-            </View>
-          )}
-          {/* Selection Summary (non-interactive) */}
-          {showSelectionSummary && hasSelectedNumber && (
-            <View style={[tw`mt-6 flex-row items-start`, { maxWidth: "90%" }]}>
-              <LinearGradient
-                colors={theme.AIgradients.linear}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={tw`w-8 h-8 rounded-full items-center justify-center mr-2`}
-              >
-                <Ionicons name="sparkles" size={18} color="white" />
-              </LinearGradient>
-              <View
-                style={[
-                  tw`p-3 rounded-2xl`,
-                  { backgroundColor: "white", maxWidth: "85%" },
-                ]}
-              >
-                <Text style={tw`text-black mb-1`}>
-                  Your selected number is:
-                </Text>
-                <Text style={tw`text-black font-semibold mb-2`}>
-                  {selectedNumber}
-                </Text>
-                {selectedCustomerId ? (
-                  <>
-                    <Text style={tw`text-black mb-1`}>Customer ID:</Text>
-                    <Text style={tw`text-black font-semibold`}>
-                      {selectedCustomerId}
-                    </Text>
-                  </>
-                ) : null}
               </View>
             </View>
           )}
@@ -694,25 +586,19 @@ const ChatScreen = ({ navigation }) => {
                 ]}
               >
                 <Text style={tw`text-black mb-2`}>Select a plan:</Text>
-                {plans.map((plan, index) => (
-                  <TouchableOpacity
-                    key={`${
-                      plan.id || plan.planId || plan.name || "plan"
-                    }-${index}`}
-                    style={[tw`p-3 m-1 border border-gray-200 rounded-lg`]}
-                    onPress={() => handlePlanSelect(plan)}
-                  >
-                    <Text style={tw`font-semibold`}>
-                      {plan.name || plan.planName}
-                    </Text>
-                    <Text>${plan.price}/month</Text>
-                    {plan.description && (
-                      <Text style={tw`text-sm text-gray-600`}>
-                        {plan.description}
+                <View style={tw`flex-row flex-wrap justify-center`}>
+                  {plans.map((plan, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => handlePlanSelect(plan)}
+                      style={[styles.button, styles.submitButton, tw`m-1 mb-2`]}
+                    >
+                      <Text style={[styles.buttonText, tw`text-center`]}>
+                        {plan.planName} - ${plan.price}
                       </Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </View>
           )}
@@ -720,9 +606,9 @@ const ChatScreen = ({ navigation }) => {
         {/* Signup Form */}
         {showSignupForm && (
           <View style={styles.formContainer}>
-            <ScrollView style={{ maxHeight: 400 }}>
+            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
               <Text style={tw`text-black text-lg font-bold mb-3`}>
-                Create Your Account
+                Provide Your Details
               </Text>
               <View style={tw`flex-row mb-2`}>
                 <View style={tw`flex-1 mr-2`}>
@@ -886,7 +772,6 @@ const ChatScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}
                   onPress={() => setShowSignupForm(false)}
-                  disabled={loading}
                 >
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -898,7 +783,7 @@ const ChatScreen = ({ navigation }) => {
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.buttonText}>Sign Up</Text>
+                    <Text style={styles.buttonText}>Submit</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -912,28 +797,30 @@ const ChatScreen = ({ navigation }) => {
               onTokenReceived={(token) => {
                 setPaymentToken(token);
                 setShowPayment(false);
-                setShowSignupForm(false); // Add this line
                 setShowTokenCard(true);
-                console.log("[ChatAI] Token received from PaymentCard", token);
-                handleSend("payment token received");
+                handleSend(
+                  `Payment completed for plan ${
+                    selectedPlan.planName || selectedPlan.name
+                  } with token: ${token}`
+                );
               }}
               onClose={() => {
                 setShowPayment(false);
-                setShowSignupForm(false); // Add this line
+                setShowPlans(true);
               }}
             />
           </View>
         )}
-        {showTokenCard && paymentToken && (
+        {showTokenCard && paymentToken && custNo && (
           <View style={styles.formContainer}>
             <TokenCard
               token={paymentToken}
-              onSuccess={(result) => {
+              custNo={custNo}
+              onSuccess={() => {
                 setShowTokenCard(false);
-                setShowPaymentProcessCard(true);
                 setPaymentToken(null);
-                console.log("[ChatAI] Token step completed", result);
-                handleSend("payment token confirmed");
+                handleSend("Payment method successfully added!");
+                setShowPaymentProcessCard(true);
               }}
               onClose={() => {
                 setShowTokenCard(false);
@@ -942,56 +829,35 @@ const ChatScreen = ({ navigation }) => {
             />
           </View>
         )}
-        {showPaymentProcessCard && selectedPlan && (
+        {showPaymentProcessCard && selectedPlan && submittedSignupDetails && (
           <View style={styles.formContainer}>
             <PaymentProcessCard
+              custNo={custNo}
+              amount={selectedPlan.price}
+              email={submittedSignupDetails.email}
+              token={paymentToken} // Pass if needed, but set null earlier; assume not used
               plan={selectedPlan}
-              onProcessed={(result) => {
-                console.log("[ChatAI] Payment process result", result);
-                const messageToSend =
+              onProcessed={async (result) => {
+                handleSend(
                   result?.message ||
-                  (result?.success
-                    ? "payment processed successfully"
-                    : "payment failed");
-                handleSend(messageToSend);
-                // Ensure the selection summary card is hidden after processing
-                setShowSelectionSummary(false);
+                    (result?.success
+                      ? "Payment processing completed!"
+                      : "Payment failed")
+                );
+                if (result?.success) {
+                  await handleActivateOrder();
+                }
+                setShowPaymentProcessCard(false);
               }}
               onClose={() => {
                 setShowPaymentProcessCard(false);
-                // Hide summary on close as well
-                setShowSelectionSummary(false);
+                handleSend("Payment processing completed!");
+                handleActivateOrder();
               }}
             />
           </View>
         )}
         {/* Message Input Area */}
-        {/* <View
-          style={[
-            tw`flex-row items-center px-4 py-3 mb-12`,
-            { backgroundColor: "rgba(255,255,255,0.05)" },
-          ]}
-        >
-          <TextInput
-            style={tw`flex-1 text-black px-4 py-2 rounded-full bg-white`}
-            placeholder="What's on your mind?"
-            placeholderTextColor="#000000"
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={sendMessage}
-          />
-          <LinearGradient
-            colors={theme.AIgradients.linear}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={tw`ml-2 w-10 h-10 rounded-full items-center justify-center`}
-          >
-            <TouchableOpacity onPress={sendMessage}>
-              <Ionicons name="arrow-up" size={20} color="white" />
-            </TouchableOpacity>
-          </LinearGradient>
-        </View> */}
-
         {!showSignupForm &&
           !showPayment &&
           !showTokenCard &&
@@ -1004,7 +870,7 @@ const ChatScreen = ({ navigation }) => {
             >
               <TextInput
                 style={tw`flex-1 text-black px-4 py-2 rounded-full bg-white`}
-                placeholder="What's on your mind?"
+                placeholder="Message..."
                 placeholderTextColor="#000000"
                 value={message}
                 onChangeText={setMessage}
@@ -1016,7 +882,7 @@ const ChatScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={tw`ml-2 w-10 h-10 rounded-full items-center justify-center`}
               >
-                <TouchableOpacity onPress={sendMessage}>
+                <TouchableOpacity onPress={sendMessage} disabled={loading}>
                   <Ionicons name="arrow-up" size={20} color="white" />
                 </TouchableOpacity>
               </LinearGradient>
@@ -1067,26 +933,10 @@ const ChatScreen = ({ navigation }) => {
     </LinearGradient>
   );
 };
-const styles = StyleSheet.create({
-  // formContainer: {
-  //   position: "absolute",
-  //   bottom: 70,
-  //   left: 0,
-  //   right: 0,
-  //   maxHeight: 400,
-  //   backgroundColor: "white",
-  //   borderTopLeftRadius: 20,
-  //   borderTopRightRadius: 20,
-  //   padding: 16,
-  //   shadowColor: "#000",
-  //   shadowOffset: { width: 0, height: -2 },
-  //   shadowOpacity: 0.1,
-  //   shadowRadius: 8,
-  //   elevation: 5,
-  // },
 
+const styles = StyleSheet.create({
   formContainer: {
-    marginBottom: 80, // pushes it above the input bar
+    marginBottom: 80,
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
@@ -1098,7 +948,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-
   input: {
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
@@ -1125,7 +974,7 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#10B981",
   },
   cancelButton: {
     backgroundColor: "#ccc",
@@ -1135,4 +984,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
 export default ChatScreen;
