@@ -55,9 +55,12 @@ export const TokenCard = ({ token, custNo, onSuccess, onClose }) => {
         throw new Error(data.message || "Failed to add payment method");
       }
 
-      console.log("[DEBUG] Success - calling onSuccess"); // Debug: Success path
+      console.log(
+        "[DEBUG] Success - calling onSuccess with paymentId:",
+        data.data?.paymentId
+      );
       Alert.alert("Success", "Payment method added successfully!");
-      onSuccess();
+      onSuccess(data.data?.paymentId);
     } catch (error) {
       console.log("[DEBUG] Entering catch block"); // Debug: Catch entry
       const errorMsg = error.message || "Something went wrong";

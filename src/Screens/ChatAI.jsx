@@ -461,10 +461,25 @@ const ChatScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      <KeyboardAvoidingView
+      {/* <KeyboardAvoidingView
         style={tw`flex-1`}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 140}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={tw`px-4 pb-6`}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: true })
+          }
+        > */}
+
+      <KeyboardAvoidingView
+        style={tw`flex-1`}
+        behavior={"padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : -55}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -816,9 +831,10 @@ const ChatScreen = ({ navigation }) => {
             <TokenCard
               token={paymentToken}
               custNo={custNo}
-              onSuccess={() => {
+              onSuccess={(paymentId) => {
+                console.log("[ChatAI] Received paymentId:", paymentId);
                 setShowTokenCard(false);
-                setPaymentToken(null);
+                setPaymentToken(paymentId); // Store the payment ID in state
                 handleSend("Payment method successfully added!");
                 setShowPaymentProcessCard(true);
               }}
@@ -835,7 +851,7 @@ const ChatScreen = ({ navigation }) => {
               custNo={custNo}
               amount={selectedPlan.price}
               email={submittedSignupDetails.email}
-              token={paymentToken} // Pass if needed, but set null earlier; assume not used
+              token={paymentToken} // This will now contain the paymentId from the API response
               plan={selectedPlan}
               onProcessed={async (result) => {
                 handleSend(
