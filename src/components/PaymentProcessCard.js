@@ -18,7 +18,7 @@ export const PaymentProcessCard = ({
   plan,
   onProcessed,
   onClose,
-}) => {
+}) => { 
   const [formData, setFormData] = useState({
     custNo: propCustNo || "",
     amount: propAmount ? `${propAmount}` : "",

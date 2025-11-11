@@ -303,7 +303,36 @@ export default function Home() {
         <View
           style={tw`bg-white mx-2 p-4 rounded-xl border border-gray-200 mb-4`}
         >
-          <Text style={tw`font-semibold mb-2`}>Current Plan</Text>
+          <View style={tw`flex-row justify-between items-center mb-2`}>
+            <Text style={tw`font-semibold`}>Current Plan</Text>
+            <TouchableOpacity
+              // In Home.jsx - update the onPress handler
+              // In Home.jsx, update the onPress handler
+              onPress={() => {
+                console.log("User object:", JSON.stringify(user, null, 2));
+                console.log("Account ID:", user?.accountId);
+                if (user?.accountId) {
+                  navigation.navigate("Plans", { customerNo: user.accountId });
+                } else {
+                  Alert.alert(
+                    "Error",
+                    "Unable to load plan information. Please try again later."
+                  );
+                }
+              }}
+              style={[tw`flex-row items-center`, { padding: 4 }]}
+            >
+              <Text
+                style={[
+                  tw`text-sm font-medium mr-1`,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                Change Plan
+              </Text>
+              <Icon name="arrow-right" size={16} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
           {serviceLoading ? (
             <ActivityIndicator size="small" color={theme.colors.primary} />
           ) : serviceData ? (

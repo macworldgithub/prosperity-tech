@@ -10,6 +10,7 @@ import Splash from "./src/Screens/Splash";
 import Login from "./src/Screens/Login";
 import PrivacyConsent from "./src/Screens/PrivacyConsent";
 import ChatAI from "./src/Screens/ChatAI";
+import PlansScreen from "./src/Screens/PlanScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,7 @@ export default function App() {
         <Stack.Screen name="PrivacyConsent" component={PrivacyConsent} />
         <Stack.Screen name="ChatAI" component={ChatAI} />
         <Stack.Screen name="SignUp" component={SignUp} />
+        <Stack.Screen name="Plans" component={PlansScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
