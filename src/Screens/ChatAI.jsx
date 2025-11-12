@@ -20,10 +20,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PaymentProcessCard } from "../components/PaymentProcessCard";
-import { TokenCard } from "../components/TokenCard";
 import { PaymentCard } from "../components/PaymentCard";
 import { API_BASE_URL } from "../utils/config";
-
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([
@@ -46,7 +44,6 @@ const ChatScreen = ({ navigation }) => {
   const [dobDateObj, setDobDateObj] = useState(new Date(1990, 0, 1));
   const { width } = useWindowDimensions();
   const [showPayment, setShowPayment] = useState(false);
-  const [showTokenCard, setShowTokenCard] = useState(false);
   const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
   const [paymentToken, setPaymentToken] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -56,6 +53,10 @@ const ChatScreen = ({ navigation }) => {
   const [planNo, setPlanNo] = useState(null);
   const [selectedSim, setSelectedSim] = useState(null);
   const [submittedSignupDetails, setSubmittedSignupDetails] = useState(null);
+  const [showSimTypeSelection, setShowSimTypeSelection] = useState(false);
+  const [selectedSimType, setSelectedSimType] = useState(null);
+  const [showPhysicalSimInput, setShowPhysicalSimInput] = useState(false);
+  const [physicalSimNumber, setPhysicalSimNumber] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     surname: "",
@@ -70,13 +71,11 @@ const ChatScreen = ({ navigation }) => {
   });
   const [formErrors, setFormErrors] = useState({});
   const scrollViewRef = useRef();
-
   // Form handling
   const handleFormChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
   const isDetailsRequest = (text) => {
     const lowerText = text.toLowerCase();
     return (
@@ -92,7 +91,6 @@ const ChatScreen = ({ navigation }) => {
       lowerText.includes("pin")
     );
   };
-
   const validateForm = () => {
     let isValid = true;
     const errors = {};
@@ -155,7 +153,6 @@ const ChatScreen = ({ navigation }) => {
     setFormErrors(errors);
     return isValid;
   };
-
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
     // Construct full address as per desired payload
@@ -189,7 +186,6 @@ const ChatScreen = ({ navigation }) => {
       Alert.alert("Error", "Failed to submit form. Please try again.");
     }
   };
-
   const handleSend = async (msgText, retryWithoutSession = false) => {
     if (!msgText.trim() || loading) return;
     const userMsg = {
@@ -243,12 +239,47 @@ const ChatScreen = ({ navigation }) => {
       if (data?.custNo) {
         setCustNo(data.custNo);
       }
-      const botText =
+      const originalBotText =
         data?.message || data?.response || "Sorry, I couldn’t understand that.";
+      let displayBotText = originalBotText;
+      const lowerOriginal = originalBotText.toLowerCase();
+
+      // Check for signup trigger and override message
+      let triggerSignup = false;
+      if (
+        lowerOriginal.includes("please provide your first name") ||
+        isDetailsRequest(originalBotText)
+      ) {
+        displayBotText =
+          "Your information is required for signup. Please fill out the form below.";
+        triggerSignup = true;
+      }
+
+      // Check for numbers trigger and override message
+      const numbersMatch = originalBotText.match(/04\d{8}/g);
+      let triggerNumbers = false;
+      if (numbersMatch && numbersMatch.length === 5) {
+        const numbers = extractNumbers(originalBotText);
+        setNumberOptions(numbers);
+        setShowNumberButtons(true);
+        displayBotText = "Please select a number from these available numbers.";
+        triggerNumbers = true;
+      }
+
+      // Check for plan trigger (when user sends a phone number)
+      if (userMsg.text.match(/^04\d{8}$/)) {
+        displayBotText = "Please select a plan from the available options.";
+      }
+
+      // Check for plan selection trigger
+      if (userMsg.text.includes("select the plan")) {
+        displayBotText = "Please choose your SIM type: e-SIM or Physical SIM.";
+      }
+
       const botMsg = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         type: "bot",
-        text: botText,
+        text: displayBotText,
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -257,21 +288,9 @@ const ChatScreen = ({ navigation }) => {
       setChat((prev) => [...prev, botMsg]);
 
       // Handle native UI triggers based on bot response
-      if (
-        botText.toLowerCase().includes("please provide your first name") ||
-        isDetailsRequest(botText)
-      ) {
+      if (triggerSignup) {
         setShowSignupForm(true);
       }
-
-      const numbersMatch = botText.match(/04\d{8}/g);
-      if (numbersMatch && numbersMatch.length === 5) {
-        const numbers = extractNumbers(botText);
-        setNumberOptions(numbers);
-        setShowNumberButtons(true);
-      }
-
-      // Plans are fetched in handleNumberSelect, not here
     } catch (error) {
       console.error("Chat error:", error);
       let errorMsg = "Oops! Something went wrong. Please try again.";
@@ -301,17 +320,14 @@ const ChatScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
   const sendMessage = () => {
     handleSend(message);
   };
-
   // Helper functions
   const extractNumbers = (text) => {
     const matches = text.match(/04\d{8}/g);
     return matches || [];
   };
-
   const handleNumberSelect = async (number) => {
     setSelectedSim(number);
     setShowNumberButtons(false);
@@ -344,7 +360,6 @@ const ChatScreen = ({ navigation }) => {
       setChat((prev) => [...prev, errorMsg]);
     }
   };
-
   const handlePlanSelect = async (plan) => {
     setSelectedPlan(plan);
     setPlanNo(String(plan.planNo || plan.id || "PLAN001"));
@@ -354,14 +369,65 @@ const ChatScreen = ({ navigation }) => {
       plan.planName || plan.name
     }`;
     await handleSend(planText);
-    // Show payment
-    setShowPayment(true);
+    // Show SIM type selection
+    setShowSimTypeSelection(true);
     // Scroll to bottom
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   };
+  const handleESimSelect = () => {
+    setSelectedSimType("e-sim");
+    setShowSimTypeSelection(false);
+    setShowPayment(true);
+  };
+  const handlePhysicalSimSelect = () => {
+    setSelectedSimType("physical");
+    setShowSimTypeSelection(false);
+    setShowPhysicalSimInput(true);
+  };
+  const handlePhysicalSimConfirm = () => {
+    if (physicalSimNumber.length !== 13) {
+      Alert.alert("Error", "Please enter a valid 13-digit SIM number.");
+      return;
+    }
+    setShowPhysicalSimInput(false);
+    setShowPayment(true);
+  };
+  const handleTokenReceived = async (token) => {
+    setPaymentToken(token);
+    setShowPayment(false);
 
+    if (!custNo) {
+      Alert.alert("Error", "Customer number not available");
+      setShowPayment(true);
+      return;
+    }
+
+    try {
+      const payload = { custNo, paymentTokenId: token };
+      const response = await fetch(`${API_BASE_URL}api/v1/payments/methods`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to add payment method");
+      }
+
+      const paymentId = data.data?.paymentId;
+      setPaymentToken(paymentId);
+      await handleSend("Payment method successfully added!");
+      setShowPaymentProcessCard(true);
+    } catch (error) {
+      console.error("Token submission error:", error);
+      Alert.alert("Error", error.message || "Failed to process token");
+      setShowPayment(true);
+    }
+  };
   const clearSession = async () => {
     setSessionId(null);
     try {
@@ -370,7 +436,6 @@ const ChatScreen = ({ navigation }) => {
       // ignore
     }
   };
-
   const handleActivateOrder = async () => {
     try {
       // Construct full address from submitted details
@@ -389,7 +454,7 @@ const ChatScreen = ({ navigation }) => {
           email: submittedSignupDetails?.email || "",
         },
         planNo: String(planNo || ""),
-        simNo: "", // Now empty (was filled)
+        simNo: selectedSimType === "physical" ? physicalSimNumber : "", // Set simNo for physical SIM
       };
       console.log("Activation payload:", payload);
       const response = await fetch(`${API_BASE_URL}api/v1/orders/activate`, {
@@ -420,17 +485,14 @@ const ChatScreen = ({ navigation }) => {
       handleFormChange("dob", formattedDate);
     }
   };
-
   const handleIosDone = () => {
     setShowDatePicker(false);
     const formattedDate = dobDateObj.toISOString().split("T")[0];
     handleFormChange("dob", formattedDate);
   };
-
   const handleIosCancel = () => {
     setShowDatePicker(false);
   };
-
   // Load session on mount
   useEffect(() => {
     (async () => {
@@ -442,7 +504,6 @@ const ChatScreen = ({ navigation }) => {
       }
     })();
   }, []);
-
   return (
     <LinearGradient
       colors={theme.gradients.splash}
@@ -459,7 +520,6 @@ const ChatScreen = ({ navigation }) => {
           Chat with AI
         </Text>
       </View>
-
       {/* <KeyboardAvoidingView
         style={tw`flex-1`}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -474,7 +534,6 @@ const ChatScreen = ({ navigation }) => {
             scrollViewRef.current?.scrollToEnd({ animated: true })
           }
         > */}
-
       <KeyboardAvoidingView
         style={tw`flex-1`}
         behavior={"padding"}
@@ -804,42 +863,61 @@ const ChatScreen = ({ navigation }) => {
             </ScrollView>
           </View>
         )}
+        {/* SIM Type Selection */}
+        {showSimTypeSelection && (
+          <View style={styles.formContainer}>
+            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+              <Text style={tw`text-black text-lg font-bold mb-3`}>
+                Choose SIM Type
+              </Text>
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton, tw`mb-3`]}
+                onPress={handleESimSelect}
+              >
+                <Text style={styles.buttonText}>e-SIM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton]}
+                onPress={handlePhysicalSimSelect}
+              >
+                <Text style={styles.buttonText}>Physical SIM</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+        {/* Physical SIM Input */}
+        {showPhysicalSimInput && (
+          <View style={styles.formContainer}>
+            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+              <Text style={tw`text-black text-lg font-bold mb-3`}>
+                Enter your 13-digit Physical SIM Number
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="13-digit SIM Number"
+                placeholderTextColor="#999"
+                keyboardType="number-pad"
+                maxLength={13}
+                value={physicalSimNumber}
+                onChangeText={setPhysicalSimNumber}
+              />
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton, tw`mt-3`]}
+                onPress={handlePhysicalSimConfirm}
+              >
+                <Text style={styles.buttonText}>Confirm</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
         {/* Payment Flow Components */}
         {showPayment && selectedPlan && (
           <View style={styles.formContainer}>
             <PaymentCard
-              onTokenReceived={(token) => {
-                setPaymentToken(token);
-                setShowPayment(false);
-                setShowTokenCard(true);
-                handleSend(
-                  `Payment completed for plan ${
-                    selectedPlan.planName || selectedPlan.name
-                  } with token: ${token}`
-                );
-              }}
+              onTokenReceived={handleTokenReceived}
               onClose={() => {
                 setShowPayment(false);
                 setShowPlans(true);
-              }}
-            />
-          </View>
-        )}
-        {showTokenCard && paymentToken && custNo && (
-          <View style={styles.formContainer}>
-            <TokenCard
-              token={paymentToken}
-              custNo={custNo}
-              onSuccess={(paymentId) => {
-                console.log("[ChatAI] Received paymentId:", paymentId);
-                setShowTokenCard(false);
-                setPaymentToken(paymentId); // Store the payment ID in state
-                handleSend("Payment method successfully added!");
-                setShowPaymentProcessCard(true);
-              }}
-              onClose={() => {
-                setShowTokenCard(false);
-                setShowPayment(true);
               }}
             />
           </View>
@@ -875,8 +953,9 @@ const ChatScreen = ({ navigation }) => {
         {/* Message Input Area */}
         {!showSignupForm &&
           !showPayment &&
-          !showTokenCard &&
-          !showPaymentProcessCard && (
+          !showPaymentProcessCard &&
+          !showSimTypeSelection &&
+          !showPhysicalSimInput && (
             <View
               style={[
                 tw`flex-row items-center px-4 py-3 mb-12`,
@@ -948,7 +1027,6 @@ const ChatScreen = ({ navigation }) => {
     </LinearGradient>
   );
 };
-
 const styles = StyleSheet.create({
   formContainer: {
     marginBottom: 80,
@@ -999,5 +1077,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-
 export default ChatScreen;

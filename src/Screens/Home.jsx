@@ -305,9 +305,7 @@ export default function Home() {
         >
           <View style={tw`flex-row justify-between items-center mb-2`}>
             <Text style={tw`font-semibold`}>Current Plan</Text>
-            <TouchableOpacity
-              // In Home.jsx - update the onPress handler
-              // In Home.jsx, update the onPress handler
+            {/* <TouchableOpacity
               onPress={() => {
                 console.log("User object:", JSON.stringify(user, null, 2));
                 console.log("Account ID:", user?.accountId);
@@ -331,7 +329,7 @@ export default function Home() {
                 Change Plan
               </Text>
               <Icon name="arrow-right" size={16} color={theme.colors.primary} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           {serviceLoading ? (
             <ActivityIndicator size="small" color={theme.colors.primary} />
