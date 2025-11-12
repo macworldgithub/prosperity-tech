@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import tw from "tailwind-react-native-classnames";
+import { API_BASE_URL } from "../utils/config";
 
 export const PaymentProcessCard = ({
   custNo: propCustNo,
@@ -18,7 +19,7 @@ export const PaymentProcessCard = ({
   plan,
   onProcessed,
   onClose,
-}) => { 
+}) => {
   const [formData, setFormData] = useState({
     custNo: propCustNo || "",
     amount: propAmount ? `${propAmount}` : "",
@@ -55,14 +56,11 @@ export const PaymentProcessCard = ({
     try {
       // Assume an API endpoint for processing payment; adjust if different
       // For now, using a placeholder /v1/payments/process - replace with actual if available
-      const response = await fetch(
-        "https://bele.omnisuiteai.com/api/v1/payments/process",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}api/v1/payments/process`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
       const data = await response.json();
       console.log("[PaymentProcessCard] Payment processing response", data);

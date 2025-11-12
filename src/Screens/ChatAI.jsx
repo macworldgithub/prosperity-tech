@@ -22,8 +22,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { PaymentProcessCard } from "../components/PaymentProcessCard";
 import { TokenCard } from "../components/TokenCard";
 import { PaymentCard } from "../components/PaymentCard";
-
-const API_BASE_URL = "https://bele.omnisuiteai.com";
+import { API_BASE_URL } from "../utils/config";
 
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
@@ -221,7 +220,7 @@ const ChatScreen = ({ navigation }) => {
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
-      const response = await fetch(`${API_BASE_URL}/chat/query`, {
+      const response = await fetch(`${API_BASE_URL}chat/query`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),

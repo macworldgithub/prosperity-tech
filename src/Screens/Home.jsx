@@ -92,7 +92,7 @@ export default function Home() {
     try {
       setServiceLoading(true);
       const response = await axios.get(
-        `https://bele.omnisuiteai.com/api/v1/customers/${custNo}/services`,
+        `${API_BASE_URL}api/v1/customers/${custNo}/services`,
         { headers: { accept: "application/json" } }
       );
       const service = response.data?.data?.services?.serviceDetails?.[0];
@@ -108,7 +108,7 @@ export default function Home() {
     try {
       setBalanceLoading(true);
       const response = await axios.get(
-        `https://bele.omnisuiteai.com/api/v1/customers/${custNo}/balance`,
+        `${API_BASE_URL}api/v1/customers/${custNo}/balance`,
         { headers: { accept: "application/json" } }
       );
       setBalance(response.data?.data || null);

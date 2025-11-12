@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import tw from "tailwind-react-native-classnames";
+import { API_BASE_URL } from "../utils/config";
 
 export const TokenCard = ({ token, custNo, onSuccess, onClose }) => {
   const [inputToken, setInputToken] = useState(token || "");
@@ -35,14 +36,11 @@ export const TokenCard = ({ token, custNo, onSuccess, onClose }) => {
       console.log("[TokenCard] API Payload:", payload); // Original log
 
       console.log("[DEBUG] About to fetch API"); // Debug: Before fetch
-      const response = await fetch(
-        "https://bele.omnisuiteai.com/api/v1/payments/methods",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}api/v1/payments/methods`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       console.log("[DEBUG] Fetch completed, status:", response.status); // Debug: After fetch
 
       console.log("[DEBUG] About to parse JSON"); // Debug: Before json()
