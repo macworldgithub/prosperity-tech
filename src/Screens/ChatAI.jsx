@@ -318,7 +318,7 @@ const ChatScreen = ({ navigation }) => {
     await handleSend(number);
     // Fetch plans after number selection
     try {
-      const plansResponse = await fetch(`${API_BASE_URL}/api/v1/plans`, {
+      const plansResponse = await fetch(`${API_BASE_URL}api/v1/plans`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -392,7 +392,7 @@ const ChatScreen = ({ navigation }) => {
         simNo: "", // Now empty (was filled)
       };
       console.log("Activation payload:", payload);
-      const response = await fetch(`${API_BASE_URL}/api/v1/orders/activate`, {
+      const response = await fetch(`${API_BASE_URL}api/v1/orders/activate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
