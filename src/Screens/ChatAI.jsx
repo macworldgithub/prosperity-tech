@@ -19,7 +19,7 @@ import { theme } from "../utils/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { PaymentProcessCard } from "../components/PaymentProcessCard";
+// import { PaymentProcessCard } from "../components/PaymentProcessCard";
 import { PaymentCard } from "../components/PaymentCard";
 import { API_BASE_URL } from "../utils/config";
 const ChatScreen = ({ navigation }) => {
@@ -44,7 +44,7 @@ const ChatScreen = ({ navigation }) => {
   const [dobDateObj, setDobDateObj] = useState(new Date(1990, 0, 1));
   const { width } = useWindowDimensions();
   const [showPayment, setShowPayment] = useState(false);
-  const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
+  // const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
   const [paymentToken, setPaymentToken] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
@@ -70,6 +70,7 @@ const ChatScreen = ({ navigation }) => {
     pin: "",
   });
   const [formErrors, setFormErrors] = useState({});
+  const [orderActivated, setOrderActivated] = useState(false);
   const scrollViewRef = useRef();
   // Form handling
   const handleFormChange = (name, value) => {
@@ -394,40 +395,69 @@ const ChatScreen = ({ navigation }) => {
     setShowPhysicalSimInput(false);
     setShowPayment(true);
   };
+  // const handleTokenReceived = async (token) => {
+  //   setPaymentToken(token);
+  //   setShowPayment(false);
+
+  //   if (!custNo) {
+  //     Alert.alert("Error", "Customer number not available");
+  //     setShowPayment(true);
+  //     return;
+  //   }
+
+  //   try {
+  //     const payload = { custNo, paymentTokenId: token };
+  //     const response = await fetch(`${API_BASE_URL}api/v1/payments/methods`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || "Failed to add payment method");
+  //     }
+
+  //     const paymentId = data.data?.paymentId;
+  //     setPaymentToken(paymentId);
+  //     await handleSend("Payment method successfully added!");
+  //     setShowPaymentProcessCard(true);
+  //   } catch (error) {
+  //     console.error("Token submission error:", error);
+  //     Alert.alert("Error", error.message || "Failed to process token");
+  //     setShowPayment(true);
+  //   }
+  // };
+
   const handleTokenReceived = async (token) => {
     setPaymentToken(token);
     setShowPayment(false);
 
     if (!custNo) {
-      Alert.alert("Error", "Customer number not available");
-      setShowPayment(true);
+      Alert.alert("Error", "Customer info missing");
       return;
     }
 
     try {
-      const payload = { custNo, paymentTokenId: token };
-      const response = await fetch(`${API_BASE_URL}api/v1/payments/methods`, {
+      // Step 1: Save payment method
+      const payRes = await fetch(`${API_BASE_URL}api/v1/payments/methods`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ custNo, paymentTokenId: token }),
       });
+      const payData = await payRes.json();
+      if (!payRes.ok) throw new Error(payData.message || "Payment failed");
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to add payment method");
-      }
-
-      const paymentId = data.data?.paymentId;
-      setPaymentToken(paymentId);
-      await handleSend("Payment method successfully added!");
-      setShowPaymentProcessCard(true);
-    } catch (error) {
-      console.error("Token submission error:", error);
-      Alert.alert("Error", error.message || "Failed to process token");
-      setShowPayment(true);
+      // Step 2: DIRECTLY ACTIVATE ORDER (No PaymentProcessCard)
+      await handleActivateOrder();
+    } catch (err) {
+      console.error("Payment/Activation error:", err);
+      Alert.alert("Failed", err.message || "Payment failed. Try again.");
+      setShowPayment(true); // Let user retry
     }
   };
+
   const clearSession = async () => {
     setSessionId(null);
     try {
@@ -436,47 +466,136 @@ const ChatScreen = ({ navigation }) => {
       // ignore
     }
   };
+  // const handleActivateOrder = async () => {
+  //   try {
+  //     // Construct full address from submitted details
+  //     const fullAddress = `${submittedSignupDetails?.address || ""}, ${
+  //       submittedSignupDetails?.suburb || ""
+  //     } ${submittedSignupDetails?.state || ""} ${
+  //       submittedSignupDetails?.postcode || ""
+  //     }, Australia`;
+  //     const payload = {
+  //       number: selectedSim || "", // Now filled with selected number (was empty)
+  //       cust: {
+  //         custNo: custNo || "",
+  //         address: fullAddress.trim(), // Full constructed address
+  //         suburb: submittedSignupDetails?.suburb || "",
+  //         postcode: submittedSignupDetails?.postcode || "",
+  //         email: submittedSignupDetails?.email || "",
+  //       },
+  //       planNo: String(planNo || ""),
+  //       simNo: selectedSimType === "physical" ? physicalSimNumber : "", // Set simNo for physical SIM
+  //     };
+  //     console.log("Activation payload:", payload);
+  //     const response = await fetch(`${API_BASE_URL}api/v1/orders/activate`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(payload),
+  //     });
+  //     const result = await response.json();
+  //     console.log("Activation result:", result);
+  //     if (response.ok) {
+  //       await handleSend("Order successfully activated!");
+  //     } else {
+  //       await handleSend(
+  //         `Activation failed: ${result.message || "Unknown error"}`
+  //       );
+  //     }
+  //   } catch (err) {
+  //     console.error("Activation failed", err);
+  //     await handleSend("Order activation failed. Please try again.");
+  //   }
+  // };
+  // Date picker handlers
   const handleActivateOrder = async () => {
+    if (orderActivated) return;
+    setOrderActivated(true);
+
+    const fullAddress = `${submittedSignupDetails?.address || ""}, ${
+      submittedSignupDetails?.suburb || ""
+    } ${submittedSignupDetails?.state || ""} ${
+      submittedSignupDetails?.postcode || ""
+    }, Australia`.trim();
+
+    const payload = {
+      number: selectedSim || "",
+      cust: {
+        custNo: custNo || "",
+        address: fullAddress,
+        suburb: submittedSignupDetails?.suburb || "",
+        postcode: submittedSignupDetails?.postcode || "",
+        email: submittedSignupDetails?.email || "",
+      },
+      planNo: String(planNo || ""),
+      simNo: selectedSimType === "physical" ? physicalSimNumber : "",
+    };
+
     try {
-      // Construct full address from submitted details
-      const fullAddress = `${submittedSignupDetails?.address || ""}, ${
-        submittedSignupDetails?.suburb || ""
-      } ${submittedSignupDetails?.state || ""} ${
-        submittedSignupDetails?.postcode || ""
-      }, Australia`;
-      const payload = {
-        number: selectedSim || "", // Now filled with selected number (was empty)
-        cust: {
-          custNo: custNo || "",
-          address: fullAddress.trim(), // Full constructed address
-          suburb: submittedSignupDetails?.suburb || "",
-          postcode: submittedSignupDetails?.postcode || "",
-          email: submittedSignupDetails?.email || "",
-        },
-        planNo: String(planNo || ""),
-        simNo: selectedSimType === "physical" ? physicalSimNumber : "", // Set simNo for physical SIM
-      };
-      console.log("Activation payload:", payload);
-      const response = await fetch(`${API_BASE_URL}api/v1/orders/activate`, {
+      const res = await fetch(`${API_BASE_URL}api/v1/orders/activate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const result = await response.json();
-      console.log("Activation result:", result);
-      if (response.ok) {
-        await handleSend("Order successfully activated!");
+      const result = await res.json();
+
+      // Clear old success/error messages
+      setChat((prev) =>
+        prev.filter(
+          (m) =>
+            !m.text.includes("Great News") &&
+            !m.text.includes("Activation failed") &&
+            !m.text.includes("Your eSIM has been created")
+        )
+      );
+
+      if (res.ok && result.data?.orderId) {
+        const successText =
+          selectedSimType === "physical"
+            ? `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYour SIM card will be posted to you shortly.\n\nYou will receive a confirmation email soon.`
+            : `Great News...Your eSIM has been created with Prosperity-Tech!\n\nHere is your Order ID: ${result.data.orderId}. Take a copy of it now, but you will also be emailed it.\n\nInstall the eSIM on your phone.\nYou will receive a QR Code in the next 5–10 minutes via email from:\ndonotreply@mobileservicesolutions.com.au\n\nMake sure to check your junk mail if it hasn't arrived.`;
+
+        setChat((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            type: "bot",
+            text: successText,
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          },
+        ]);
       } else {
-        await handleSend(
-          `Activation failed: ${result.message || "Unknown error"}`
-        );
+        setChat((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            type: "bot",
+            text: `Activation failed: ${result.message || "Please try again"}`,
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          },
+        ]);
       }
     } catch (err) {
-      console.error("Activation failed", err);
-      await handleSend("Order activation failed. Please try again.");
+      setChat((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          text: "Activation failed. Please contact support.",
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
     }
   };
-  // Date picker handlers
+
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -922,7 +1041,7 @@ const ChatScreen = ({ navigation }) => {
             />
           </View>
         )}
-        {showPaymentProcessCard && selectedPlan && submittedSignupDetails && (
+        {/* {showPaymentProcessCard && selectedPlan && submittedSignupDetails && (
           <View style={styles.formContainer}>
             <PaymentProcessCard
               custNo={custNo}
@@ -949,11 +1068,15 @@ const ChatScreen = ({ navigation }) => {
               }}
             />
           </View>
-        )}
+        )} */}
         {/* Message Input Area */}
-        {!showSignupForm &&
+        {/* {!showSignupForm &&
           !showPayment &&
           !showPaymentProcessCard &&
+          !showSimTypeSelection &&
+          !showPhysicalSimInput && ( */}
+        {!showSignupForm &&
+          !showPayment &&
           !showSimTypeSelection &&
           !showPhysicalSimInput && (
             <View

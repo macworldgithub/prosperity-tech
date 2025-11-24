@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,27 +11,164 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from "react-native";
 import tw from "tailwind-react-native-classnames";
 import { ArrowLeft } from "lucide-react-native";
 import { theme } from "../utils/theme";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { API_BASE_URL } from "../utils/config";
 
-const BillQuery = ({ navigation }) => {
+const BillQuery = () => {
+  const navigation = useNavigation();
   const [question, setQuestion] = useState("");
-  const [billItems] = useState([
-    { label: "Previous Balance", amount: 0.0 },
-    { label: "Service Charge (May 1–31)", amount: 85.5 },
-    { label: "Service Charge (Duplicate)", amount: 85.5, highlight: true },
-    { label: "Taxes & Fees", amount: 12.28 },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [unbilledData, setUnbilledData] = useState(null);
+  const [unbilledDetails, setUnbilledDetails] = useState({}); // Object mapping csn to details array
+  const [customerId, setCustomerId] = useState(null);
 
-  const total = billItems.reduce((acc, item) => acc + item.amount, 0);
+  // Fetch user data to get customer ID
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        if (!token) {
+          setError("No authentication token found");
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`${API_BASE_URL}user/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const { user, customer } = response.data;
+        const custId = customer.custNo;
+        if (!custId) {
+          setError("No customer ID found");
+          setLoading(false);
+          return;
+        }
+        setCustomerId(custId);
+        setLoading(false);
+      } catch (err) {
+        console.error("User data fetch error:", err);
+        setError(err.message || "Failed to fetch user data");
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Fetch unbilled summary once customer ID is available
+  useEffect(() => {
+    if (!customerId) return;
+
+    const fetchUnbilledSummary = async () => {
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        setLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}api/v1/customers/${customerId}/unbilled-summary`,
+          {
+            headers: {
+              accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.status === "success") {
+          setUnbilledData(response.data.data.unbilledCallsSummary.calls || []);
+        } else {
+          setError("Failed to fetch unbilled summary");
+        }
+      } catch (err) {
+        console.error("Unbilled summary fetch error:", err);
+        setError(err.message || "Failed to fetch unbilled summary");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUnbilledSummary();
+  }, [customerId]);
+
+  // Fetch unbilled details for each CSN once summary is loaded
+  useEffect(() => {
+    if (!unbilledData || unbilledData.length === 0 || !customerId) return;
+
+    const fetchAllDetails = async () => {
+      const token = await AsyncStorage.getItem("access_token");
+      setDetailsLoading(true);
+      setError(null); // Clear previous errors for details
+
+      try {
+        const promises = unbilledData.map((item) =>
+          axios
+            .get(
+              `${API_BASE_URL}api/v1/customers/${customerId}/unbilled-detail?csn=${item.csn}`,
+              {
+                headers: {
+                  accept: "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            )
+            .then((res) => ({
+              csn: item.csn,
+              data: res.data.data?.unbilledCallsDetail?.calls || [], // FIXED: Correct path to calls array
+            }))
+            .catch((err) => {
+              console.error(`Details fetch error for CSN ${item.csn}:`, err);
+              return { csn: item.csn, data: [], error: err.message };
+            })
+        );
+
+        const results = await Promise.all(promises);
+        const detailsMap = {};
+        results.forEach((r) => {
+          detailsMap[r.csn] = r.data;
+        });
+        setUnbilledDetails(detailsMap);
+      } catch (err) {
+        console.error("Batch details fetch error:", err);
+        setError("Failed to fetch unbilled details");
+      } finally {
+        setDetailsLoading(false);
+      }
+    };
+
+    fetchAllDetails();
+  }, [unbilledData, customerId]);
 
   const handleSend = () => {
     if (!question.trim()) return;
     console.log("Bill query submitted:", question);
     setQuestion("");
     Keyboard.dismiss();
+  };
+
+  const handleBack = () => navigation.goBack();
+
+  // Compute total charge from summary data
+  const totalCharge = unbilledData
+    ? unbilledData.reduce(
+        (acc, item) => acc + parseFloat(item.totalCharge || 0),
+        0
+      )
+    : 0;
+
+  // Helper function to display name with condition
+  const getDisplayName = (name) => {
+    if (name === "SimplyBig Unlimited") {
+      return "Just Mobile";
+    }
+    return name || "N/A";
   };
 
   return (
@@ -53,48 +190,177 @@ const BillQuery = ({ navigation }) => {
           >
             {/* Header */}
             <View style={tw`flex-row items-center mb-4`}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
+              <TouchableOpacity onPress={handleBack} style={tw`p-1`}>
                 <ArrowLeft size={24} color="black" />
               </TouchableOpacity>
               <Text style={tw`ml-3 text-lg font-semibold`}>Bill Query</Text>
             </View>
 
-            {/* Current Bill Card */}
+            {/* Unbilled Summary Card */}
             <View
               style={tw`bg-white rounded-xl shadow p-4 mb-6 border border-gray-300`}
             >
               <Text style={tw`text-base font-semibold mb-3`}>
-                Current Bill - May 2024
+                Unbilled Summary
               </Text>
-              {billItems.map((item, index) => (
-                <View
-                  key={index}
-                  style={tw`flex-row justify-between items-center py-2 border-b border-gray-200`}
-                >
-                  <Text
-                    style={[
-                      tw`text-sm text-gray-700`,
-                      item.highlight && { color: "red", fontWeight: "600" },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[
-                      tw`text-sm font-medium`,
-                      item.highlight && { color: "red" },
-                    ]}
-                  >
-                    ${item.amount.toFixed(2)}
-                  </Text>
-                </View>
-              ))}
-              <View style={tw`flex-row justify-between items-center pt-3`}>
-                <Text style={tw`text-sm font-semibold`}>Total Amount Due</Text>
-                <Text style={tw`text-sm font-semibold`}>
-                  ${total.toFixed(2)}
+              {loading ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : error ? (
+                <Text style={tw`text-red-500 text-sm`}>{error}</Text>
+              ) : unbilledData && unbilledData.length > 0 ? (
+                <>
+                  {unbilledData.map((item, index) => (
+                    <View
+                      key={index}
+                      style={tw`mb-4 border-b border-gray-200 pb-3`}
+                    >
+                      <Text style={tw`text-sm font-medium text-gray-800 mb-1`}>
+                        {getDisplayName(item.name)}
+                      </Text>
+                      <View style={tw`flex-row justify-between py-1`}>
+                        <Text style={tw`text-xs text-gray-600`}>
+                          GroupName:
+                        </Text>
+                        <Text style={tw`text-xs font-medium`}>
+                          {item.groupName || "N/A"}
+                        </Text>
+                      </View>
+                      <View style={tw`flex-row justify-between py-1`}>
+                        <Text style={tw`text-xs text-gray-600`}>
+                          Total Calls:
+                        </Text>
+                        <Text style={tw`text-xs font-medium`}>
+                          {item.totalCalls || 0}
+                        </Text>
+                      </View>
+                      <View style={tw`flex-row justify-between py-1`}>
+                        <Text style={tw`text-xs text-gray-600`}>
+                          Total Charge:
+                        </Text>
+                        <Text style={tw`text-xs font-medium`}>
+                          $ {parseFloat(item.totalCharge || 0).toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={tw`flex-row justify-between py-1`}>
+                        <Text style={tw`text-xs text-gray-600`}>
+                          Total Other:
+                        </Text>
+                        <Text style={tw`text-xs font-medium`}>
+                          $ {item.totalOther || 0}
+                        </Text>
+                      </View>
+                      <View style={tw`flex-row justify-between py-1`}>
+                        <Text style={tw`text-xs text-gray-600`}>
+                          Total VSP Cost:
+                        </Text>
+                        <Text style={tw`text-xs font-medium`}>
+                          $ {parseFloat(item.totalVSPCost || 0).toFixed(2)}
+                        </Text>
+                      </View>
+                      {index < unbilledData.length - 1 && (
+                        <View style={tw`border-b border-gray-200 my-2`} />
+                      )}
+                    </View>
+                  ))}
+                  <View style={tw`flex-row justify-between items-center pt-3`}>
+                    <Text style={tw`text-sm font-semibold`}>
+                      Total Amount Due
+                    </Text>
+                    <Text style={tw`text-sm font-semibold`}>
+                      $ {totalCharge.toFixed(2)}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={tw`text-gray-500 text-sm`}>
+                  No unbilled data available
                 </Text>
-              </View>
+              )}
+            </View>
+
+            {/* Unbilled Details Card - Below Summary */}
+            <View
+              style={tw`bg-white rounded-xl shadow p-4 mb-6 border border-gray-300`}
+            >
+              <Text style={tw`text-base font-semibold mb-3`}>
+                Unbilled Details
+              </Text>
+              {detailsLoading ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : unbilledDetails && Object.keys(unbilledDetails).length > 0 ? (
+                <>
+                  {unbilledData.map((item) => (
+                    <View key={item.csn} style={tw`mb-4`}>
+                      <Text
+                        style={tw`text-sm font-medium text-gray-800 mb-2 border-b border-gray-200 pb-1`}
+                      >
+                        Details for {getDisplayName(item.name)} (CSN: {item.csn}
+                        )
+                      </Text>
+                      {unbilledDetails[item.csn] &&
+                      unbilledDetails[item.csn].length > 0 ? (
+                        <>
+                          {unbilledDetails[item.csn].map(
+                            (detail, detailIndex) => (
+                              <View
+                                key={detailIndex}
+                                style={tw`flex-row justify-between py-2 border-b border-gray-100`}
+                              >
+                                <View style={tw`flex-1 pr-2`}>
+                                  <Text style={tw`text-xs text-gray-600 mb-1`}>
+                                    {detail.dateStart} to {detail.dateEnd}
+                                  </Text>
+                                  <Text style={tw`text-xs text-gray-600 mb-1`}>
+                                    {detail.detail || "N/A"} ({detail.itemType})
+                                  </Text>
+                                  <Text style={tw`text-xs text-gray-600`}>
+                                    Duration: {detail.duration || "0"}s | From:{" "}
+                                    {detail.origin || "N/A"}
+                                  </Text>
+                                </View>
+                                <View style={tw`text-right`}>
+                                  <Text style={tw`text-xs font-medium`}>
+                                    ${parseFloat(detail.charge || 0).toFixed(2)}
+                                  </Text>
+                                  <Text style={tw`text-xs text-gray-500`}>
+                                    VSP: $
+                                    {parseFloat(detail.vspCost || 0).toFixed(2)}
+                                  </Text>
+                                </View>
+                              </View>
+                            )
+                          )}
+                          {/* Optional: Subtotal for this CSN */}
+                          <View
+                            style={tw`flex-row justify-between pt-2 border-t border-gray-200`}
+                          >
+                            <Text style={tw`text-sm font-medium`}>
+                              Subtotal for {item.csn}
+                            </Text>
+                            <Text style={tw`text-sm font-semibold`}>
+                              $
+                              {unbilledDetails[item.csn]
+                                .reduce(
+                                  (acc, d) => acc + parseFloat(d.charge || 0),
+                                  0
+                                )
+                                .toFixed(2)}
+                            </Text>
+                          </View>
+                        </>
+                      ) : (
+                        <Text style={tw`text-gray-500 text-xs`}>
+                          No detailed records available for this CSN
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                </>
+              ) : !detailsLoading ? (
+                <Text style={tw`text-gray-500 text-sm`}>
+                  No unbilled details available
+                </Text>
+              ) : null}
             </View>
 
             {/* Ask About Bill Section */}
