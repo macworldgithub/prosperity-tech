@@ -28,7 +28,7 @@ const ChatScreen = ({ navigation }) => {
     {
       id: 1,
       type: "bot",
-      text: "Hi there, I would be glad to help. How can I help?",
+      text: "Hi , How can I help?",
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",

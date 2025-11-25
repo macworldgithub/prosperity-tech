@@ -18,9 +18,9 @@ import { API_BASE_URL } from "../utils/config";
 import { theme } from "../utils/theme";
 import axios from "axios";
 import { PaymentCard } from "../components/PaymentCard";
-import { TokenCard } from "../components/TokenCard";
-import { PaymentProcessCard } from "../components/PaymentProcessCard";
-
+// import { TokenCard } from "../components/TokenCard";
+// import { PaymentProcessCard } from "../components/PaymentProcessCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function PlansScreen() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,8 +34,8 @@ export default function PlansScreen() {
 
   // Payment flow states
   const [showPayment, setShowPayment] = useState(false);
-  const [showTokenCard, setShowTokenCard] = useState(false);
-  const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
+  // const [showTokenCard, setShowTokenCard] = useState(false);
+  // const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
   const [paymentToken, setPaymentToken] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -121,57 +121,135 @@ export default function PlansScreen() {
     setShowPayment(true);
   };
 
-  const handleTokenReceived = (token) => {
+  const handleTokenReceived = async (token) => {
     setPaymentToken(token);
     setShowPayment(false);
-    setShowTokenCard(true);
-  };
 
-  const handlePaymentMethodAdded = (paymentId) => {
-    setPaymentToken(paymentId);
-    setShowTokenCard(false);
-    setShowPaymentProcessCard(true);
-  };
+    if (!customerNo || !selectedPlan) {
+      Alert.alert("Error", "Missing required information");
+      return;
+    }
 
-  const handlePaymentProcessed = async (result) => {
-    setShowPaymentProcessCard(false);
-    if (result?.success && selectedPlan) {
-      try {
-        const response = await axios.patch(
-          `${API_BASE_URL}api/v1/plans/${selectedPlan.planNo}`,
-          {},
-          {
-            headers: {
-              accept: "*/*",
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        const updateData = response.data?.data;
-        console.log("Plan update response data:", updateData);
-        if (updateData) {
-          setCurrentPlan({
-            planNo: updateData.planNo,
-            planName: updateData.planName,
-          });
-          Alert.alert(
-            "Success",
-            `Plan updated successfully! New Plan: ${updateData.planName} (No: ${updateData.planNo})`
-          );
-          // Refresh to update UI
-          fetchPlans();
+    try {
+      // Internal: Add payment method (equivalent to TokenCard logic)
+      const addMethodPayload = {
+        custNo: customerNo,
+        paymentTokenId: token,
+      };
+      const addMethodResponse = await axios.post(
+        `${API_BASE_URL}api/v1/payments/methods`,
+        addMethodPayload,
+        {
+          headers: { "Content-Type": "application/json" },
         }
-      } catch (err) {
-        console.error("Error updating plan:", err);
-        Alert.alert(
-          "Error",
-          "Payment successful but plan update failed. Please contact support."
+      );
+
+      if (!addMethodResponse.data?.data?.paymentId) {
+        throw new Error(
+          addMethodResponse.data?.message || "Failed to add payment method"
         );
       }
-    } else {
-      Alert.alert("Error", result?.message || "Payment failed");
+
+      const paymentId = addMethodResponse.data.data.paymentId;
+
+      // Internal: Upgrade plan via PATCH (after payment method added)
+      const authToken = await AsyncStorage.getItem("access_token");
+      if (!authToken) {
+        throw new Error("Authentication token not found");
+      }
+
+      const patchResponse = await axios.patch(
+        `${API_BASE_URL}api/v1/plans/${selectedPlan.planNo}`,
+        {}, // empty body
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      const updateData = patchResponse.data?.data;
+      console.log("Plan update response data:", updateData);
+      if (updateData) {
+        setCurrentPlan({
+          planNo: selectedPlan.planNo,
+          planName: selectedPlan.planName,
+        });
+
+        Alert.alert(
+          "Success",
+          `Plan updated successfully to ${selectedPlan.planName}`
+        );
+
+        // Refresh plans to update the UI
+        fetchPlans();
+      } else {
+        throw new Error(patchResponse.data?.message || "Failed to update plan");
+      }
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to process upgrade. Please try again."
+      );
     }
   };
+
+  // const handleTokenReceived = (token) => {
+  //   setPaymentToken(token);
+  //   setShowPayment(false);
+  //   setShowTokenCard(true);
+  // };
+
+  // const handlePaymentMethodAdded = (paymentId) => {
+  //   setPaymentToken(paymentId);
+  //   setShowTokenCard(false);
+  //   setShowPaymentProcessCard(true);
+  // };
+
+  // const handlePaymentProcessed = async (result) => {
+  //   setShowPaymentProcessCard(false);
+  //   if (result?.success && selectedPlan) {
+  //     try {
+  //       const response = await axios.patch(
+  //         `${API_BASE_URL}api/v1/plans/${selectedPlan.planNo}`,
+  //         {},
+  //         {
+  //           headers: {
+  //             accept: "*/*",
+  //             "Content-Type": "application/json",
+  //           },
+  //         }
+  //       );
+  //       const updateData = response.data?.data;
+  //       console.log("Plan update response data:", updateData);
+  //       if (updateData) {
+  //         setCurrentPlan({
+  //           planNo: updateData.planNo,
+  //           planName: updateData.planName,
+  //         });
+  //         Alert.alert(
+  //           "Success",
+  //           `Plan updated successfully! New Plan: ${updateData.planName} (No: ${updateData.planNo})`
+  //         );
+  //         // Refresh to update UI
+  //         fetchPlans();
+  //       }
+  //     } catch (err) {
+  //       console.error("Error updating plan:", err);
+  //       Alert.alert(
+  //         "Error",
+  //         "Payment successful but plan update failed. Please contact support."
+  //       );
+  //     }
+  //   } else {
+  //     Alert.alert("Error", result?.message || "Payment failed");
+  //   }
+  // };
 
   const renderPlanItem = ({ item }) => {
     const isCurrentPlan =
@@ -369,7 +447,7 @@ export default function PlansScreen() {
         </SafeAreaView>
       </Modal>
 
-      <Modal
+      {/* <Modal
         visible={showTokenCard}
         animationType="slide"
         presentationStyle="pageSheet"
@@ -438,7 +516,7 @@ export default function PlansScreen() {
             )}
           </View>
         </SafeAreaView>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 }
