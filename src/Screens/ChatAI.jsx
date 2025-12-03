@@ -2106,17 +2106,25 @@ const ChatScreen = ({ navigation }) => {
       ]);
     }
   };
+  const formatToLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDobDateObj(selectedDate);
-      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const formattedDate = formatToLocalDate(selectedDate);
       handleFormChange("dob", formattedDate);
     }
   };
+
   const handleIosDone = () => {
     setShowDatePicker(false);
-    const formattedDate = dobDateObj.toISOString().split("T")[0];
+    const formattedDate = formatToLocalDate(dobDateObj);
     handleFormChange("dob", formattedDate);
   };
   const handleIosCancel = () => {
