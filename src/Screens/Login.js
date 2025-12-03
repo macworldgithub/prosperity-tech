@@ -183,7 +183,8 @@ const Login = () => {
           <ScrollView
             contentContainerStyle={{
               flexGrow: 1,
-              justifyContent: "center",
+              marginTop: 270,
+              // justifyContent: "center",
               paddingHorizontal: 24,
             }}
             keyboardShouldPersistTaps="handled"
@@ -342,7 +343,8 @@ const Login = () => {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: "center",
+            marginTop: 220,
+            // justifyContent: "center",
             paddingHorizontal: 24,
           }}
           keyboardShouldPersistTaps="handled"
