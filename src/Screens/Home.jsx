@@ -937,7 +937,7 @@ export default function Home() {
   };
   const getDisplayServiceName = (name) => {
     if (name === "SimplyBig Unlimited") {
-      return "Just Mobile";
+      return "Belar";
     }
     return name || "N/A";
   };

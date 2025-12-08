@@ -83,13 +83,17 @@ const BillQuery = () => {
         );
 
         if (response.data.status === "success") {
-          setUnbilledData(response.data.data.unbilledCallsSummary.calls || []);
+          // FIXED: Add optional chaining to safely access unbilledCallsSummary.calls
+          const summary = response.data.data?.unbilledCallsSummary;
+          setUnbilledData(summary?.calls || []);
         } else {
           setError("Failed to fetch unbilled summary");
+          setUnbilledData([]); // Set to empty array to avoid UI issues
         }
       } catch (err) {
         console.error("Unbilled summary fetch error:", err);
         setError(err.message || "Failed to fetch unbilled summary");
+        setUnbilledData([]); // Set to empty array to avoid UI issues
       } finally {
         setLoading(false);
       }
@@ -166,7 +170,7 @@ const BillQuery = () => {
   // Helper function to display name with condition
   const getDisplayName = (name) => {
     if (name === "SimplyBig Unlimited") {
-      return "Just Mobile";
+      return "Belar";
     }
     return name || "N/A";
   };
@@ -273,7 +277,7 @@ const BillQuery = () => {
                 </>
               ) : (
                 <Text style={tw`text-gray-500 text-sm`}>
-                  No unbilled data available
+                  No unbilled summary available
                 </Text>
               )}
             </View>

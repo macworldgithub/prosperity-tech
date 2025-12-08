@@ -2061,7 +2061,7 @@ const ChatScreen = ({ navigation }) => {
         if (isPorting) {
           successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYou will receive a confirmation email soon.`;
         } else if (selectedSimType === "physical") {
-          successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYour SIM card will be posted to you shortly.\n\nYou will receive a confirmation email soon.`;
+          successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
         } else {
           successText = `Great News...Your eSIM has been created with Prosperity-Tech!\n\nHere is your Order ID: ${result.data.orderId}. Take a copy of it now, but you will also be emailed it.\n\nInstall the eSIM on your phone.\nYou will receive a QR Code in the next 5–10 minutes via email from:\ndonotreply@mobileservicesolutions.com.au\n\nMake sure to check your junk mail if it hasn't arrived.`;
         }
