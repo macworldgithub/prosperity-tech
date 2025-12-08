@@ -82,9 +82,23 @@
 //   const [showArnConfirm, setShowArnConfirm] = useState(false);
 //   const [hasSelectedNumber, setHasSelectedNumber] = useState(false);
 //   const scrollViewRef = useRef();
+
+//   const addBotMessage = (text) => {
+//     const botMsg = {
+//       id: Date.now() + Math.floor(Math.random() * 1000),
+//       type: "bot",
+//       text,
+//       time: new Date().toLocaleTimeString([], {
+//         hour: "2-digit",
+//         minute: "2-digit",
+//       }),
+//     };
+//     setChat((prev) => [...prev, botMsg]);
+//   };
+
 //   // Form handling
 //   const handleFormChange = (name, value) => {
-//     setFormData((prev) => ({ ...prev, [name]: value }));
+//     setFormData((prev) => ({ ...prev, [name]: value.trim() }));
 //     setFormErrors((prev) => ({ ...prev, [name]: "" }));
 //   };
 //   const isDetailsRequest = (text) => {
@@ -269,6 +283,9 @@
 //     setLoading(true);
 //     await handleSend(`numType: prepaid`, false, true, true);
 //     setLoading(false);
+//     addBotMessage(
+//       `Thanks for signup and enter existing number ${existingNumber}. Now please choose a plan.`
+//     );
 //     await fetchPlansAndShow();
 //   };
 //   const handlePostpaid = () => {
@@ -398,9 +415,10 @@
 //         !hasSelectedNumber
 //       ) {
 //         const numbers = extractNumbers(originalBotText);
-//         setNumberOptions(numbers);
+//         setNumberOptions(numbersMatch);
 //         setShowNumberButtons(true);
-//         displayBotText = "Please select a number from these available numbers.";
+//         displayBotText =
+//           "Thanks, now it’s time to choose a number from the selection below";
 //         triggerNumbers = true;
 //       }
 //       // Check for plan trigger (when user sends a phone number)
@@ -421,6 +439,8 @@
 //         }),
 //       };
 //       if (!silent) {
+//         setChat((prev) => [...prev, botMsg]);
+//       } else if (triggerSignup || triggerNumbers) {
 //         setChat((prev) => [...prev, botMsg]);
 //       }
 //       // Handle native UI triggers based on bot response
@@ -651,7 +671,7 @@
 //         if (isPorting) {
 //           successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYou will receive a confirmation email soon.`;
 //         } else if (selectedSimType === "physical") {
-//           successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYour SIM card will be posted to you shortly.\n\nYou will receive a confirmation email soon.`;
+//           successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
 //         } else {
 //           successText = `Great News...Your eSIM has been created with Prosperity-Tech!\n\nHere is your Order ID: ${result.data.orderId}. Take a copy of it now, but you will also be emailed it.\n\nInstall the eSIM on your phone.\nYou will receive a QR Code in the next 5–10 minutes via email from:\ndonotreply@mobileservicesolutions.com.au\n\nMake sure to check your junk mail if it hasn't arrived.`;
 //         }
@@ -696,17 +716,25 @@
 //       ]);
 //     }
 //   };
+//   const formatToLocalDate = (date) => {
+//     const year = date.getFullYear();
+//     const month = String(date.getMonth() + 1).padStart(2, "0");
+//     const day = String(date.getDate()).padStart(2, "0");
+//     return `${year}-${month}-${day}`;
+//   };
+
 //   const onDateChange = (event, selectedDate) => {
 //     setShowDatePicker(false);
 //     if (selectedDate) {
 //       setDobDateObj(selectedDate);
-//       const formattedDate = selectedDate.toISOString().split("T")[0];
+//       const formattedDate = formatToLocalDate(selectedDate);
 //       handleFormChange("dob", formattedDate);
 //     }
 //   };
+
 //   const handleIosDone = () => {
 //     setShowDatePicker(false);
-//     const formattedDate = dobDateObj.toISOString().split("T")[0];
+//     const formattedDate = formatToLocalDate(dobDateObj);
 //     handleFormChange("dob", formattedDate);
 //   };
 //   const handleIosCancel = () => {
@@ -1104,7 +1132,7 @@
 //                 keyboardType="phone-pad"
 //                 maxLength={10}
 //                 value={existingNumber}
-//                 onChangeText={setExistingNumber}
+//                 onChangeText={(text) => setExistingNumber(text.trim())}
 //               />
 //               <TouchableOpacity
 //                 style={[styles.button, styles.submitButton, tw`mt-3`]}
@@ -1149,7 +1177,7 @@
 //                 placeholder="ARN"
 //                 placeholderTextColor="#999"
 //                 value={arn}
-//                 onChangeText={setArn}
+//                 onChangeText={(text) => setArn(text.trim())}
 //               />
 //               <TouchableOpacity
 //                 style={[styles.button, styles.submitButton, tw`mt-3`]}
@@ -1180,6 +1208,9 @@
 //                     true
 //                   );
 //                   setLoading(false);
+//                   addBotMessage(
+//                     `Great! We'll port your existing number ${existingNumber}. Now please choose a plan.`
+//                   );
 //                   await fetchPlansAndShow();
 //                 }}
 //               >
@@ -1233,7 +1264,9 @@
 //                 keyboardType="number-pad"
 //                 maxLength={13}
 //                 value={physicalSimNumber}
-//                 onChangeText={setPhysicalSimNumber}
+//                 onChangeText={(text) =>
+//                   setPhysicalSimNumber(text.replace(/\D/g, ""))
+//                 }
 //               />
 //               <TouchableOpacity
 //                 style={[styles.button, styles.submitButton, tw`mt-3`]}
@@ -1488,7 +1521,7 @@ const ChatScreen = ({ navigation }) => {
 
   // Form handling
   const handleFormChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value.trim() }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
   const isDetailsRequest = (text) => {
@@ -1576,11 +1609,15 @@ const ChatScreen = ({ navigation }) => {
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
     // Construct full address as per desired payload
-    const fullAddress = `${formData.address}, ${formData.suburb} ${formData.state} ${formData.postcode}, Australia`;
+    const fullAddress = `${formData.address.trim()}, ${formData.suburb.trim()} ${formData.state.trim()} ${formData.postcode.trim()}, Australia`;
     try {
       // Store the form data with full address
       const formDataCopy = {
         ...formData,
+        firstName: formData.firstName.trim(),
+        surname: formData.surname.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
         dob: formatDob(formData.dob),
         address: fullAddress,
       };
