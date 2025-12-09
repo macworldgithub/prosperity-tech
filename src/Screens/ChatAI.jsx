@@ -1420,7 +1420,6 @@
 //   },
 // });
 // export default ChatScreen;
-
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -1465,6 +1464,7 @@ const ChatScreen = ({ navigation }) => {
   const [numberOptions, setNumberOptions] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDateObj, setDobDateObj] = useState(new Date(1990, 0, 1));
+  const [tempDobDate, setTempDobDate] = useState(new Date(1990, 0, 1));
   const { width } = useWindowDimensions();
   const [showPayment, setShowPayment] = useState(false);
   // const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
@@ -2151,22 +2151,22 @@ const ChatScreen = ({ navigation }) => {
   };
 
   const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
     if (selectedDate) {
-      setDobDateObj(selectedDate);
-      const formattedDate = formatToLocalDate(selectedDate);
-      handleFormChange("dob", formattedDate);
+      setTempDobDate(selectedDate);
     }
   };
 
-  const handleIosDone = () => {
+  const handleDone = () => {
     setShowDatePicker(false);
-    const formattedDate = formatToLocalDate(dobDateObj);
+    setDobDateObj(tempDobDate);
+    const formattedDate = formatToLocalDate(tempDobDate);
     handleFormChange("dob", formattedDate);
   };
-  const handleIosCancel = () => {
+
+  const handleCancel = () => {
     setShowDatePicker(false);
   };
+
   // Load session on mount
   useEffect(() => {
     (async () => {
@@ -2412,7 +2412,10 @@ const ChatScreen = ({ navigation }) => {
                       paddingVertical: 12,
                     },
                   ]}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => {
+                    setTempDobDate(dobDateObj);
+                    setShowDatePicker(true);
+                  }}
                 >
                   <Text style={{ color: formData.dob ? "#000" : "#999" }}>
                     {formData.dob || "Date of Birth (YYYY-MM-DD) *"}
@@ -2753,46 +2756,37 @@ const ChatScreen = ({ navigation }) => {
           )}
       </KeyboardAvoidingView>
       {/* Date Picker */}
-      {showDatePicker &&
-        (Platform.OS === "android" ? (
-          <DateTimePicker
-            value={dobDateObj}
-            mode="date"
-            display="default"
-            maximumDate={new Date()}
-            onChange={onDateChange}
-          />
-        ) : (
-          <Modal transparent animationType="slide">
-            <View style={tw`flex-1 justify-end bg-black/50`}>
-              <View style={tw`bg-white rounded-t-2xl p-4`}>
-                <View style={tw`flex-row justify-between items-center mb-4`}>
-                  <TouchableOpacity onPress={handleIosCancel} style={tw`p-2`}>
-                    <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
-                  </TouchableOpacity>
-                  <Text
-                    style={tw`text-center flex-1 font-semibold text-gray-700`}
-                  >
-                    Select Date of Birth
-                  </Text>
-                  <TouchableOpacity onPress={handleIosDone} style={tw`p-2`}>
-                    <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={{ height: 216 }}>
-                  <DateTimePicker
-                    value={dobDateObj}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDateChange}
-                    maximumDate={new Date()}
-                    themeVariant="light"
-                  />
-                </View>
+      {showDatePicker && (
+        <Modal transparent animationType="slide">
+          <View style={tw`flex-1 justify-end bg-black/50`}>
+            <View style={tw`bg-white rounded-t-2xl p-4`}>
+              <View style={tw`flex-row justify-between items-center mb-4`}>
+                <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
+                  <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
+                </TouchableOpacity>
+                <Text
+                  style={tw`text-center flex-1 font-semibold text-gray-700`}
+                >
+                  Select Date of Birth
+                </Text>
+                <TouchableOpacity onPress={handleDone} style={tw`p-2`}>
+                  <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ height: 216 }}>
+                <DateTimePicker
+                  value={tempDobDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                  themeVariant="light"
+                />
               </View>
             </View>
-          </Modal>
-        ))}
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 };
