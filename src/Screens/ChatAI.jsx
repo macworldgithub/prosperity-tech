@@ -1505,7 +1505,7 @@ const ChatScreen = ({ navigation }) => {
   const [showArnConfirm, setShowArnConfirm] = useState(false);
   const [hasSelectedNumber, setHasSelectedNumber] = useState(false);
   const scrollViewRef = useRef();
-
+  const [hasValidSession, setHasValidSession] = useState(false);
   const addBotMessage = (text) => {
     const botMsg = {
       id: Date.now() + Math.floor(Math.random() * 1000),
@@ -1780,11 +1780,20 @@ const ChatScreen = ({ navigation }) => {
       setLoading(true);
     }
     try {
+      // let payload = {
+      //   query,
+      //   brand: "Prosperity-tech",
+      // };
+      // if (!retryWithoutSession && sessionId) {
+      //   payload.session_id = sessionId;
+      // }
       let payload = {
         query,
         brand: "Prosperity-tech",
       };
-      if (!retryWithoutSession && sessionId) {
+
+      // Only send session_id if we've confirmed it's valid
+      if (!retryWithoutSession && hasValidSession && sessionId) {
         payload.session_id = sessionId;
       }
       const token = await AsyncStorage.getItem("access_token");
@@ -1807,13 +1816,20 @@ const ChatScreen = ({ navigation }) => {
         );
       }
       const data = await response.json();
-      if (!sessionId && !retryWithoutSession && data.session_id) {
-        setSessionId(data.session_id);
-        try {
+      // if (!sessionId && !retryWithoutSession && data.session_id) {
+      //   setSessionId(data.session_id);
+      //   try {
+      //     await AsyncStorage.setItem("chat_session_id", data.session_id);
+      //   } catch (e) {
+      //     // ignore storage errors
+      //   }
+      // }
+      if (data.session_id) {
+        if (!sessionId || data.session_id !== sessionId) {
+          setSessionId(data.session_id);
           await AsyncStorage.setItem("chat_session_id", data.session_id);
-        } catch (e) {
-          // ignore storage errors
         }
+        setHasValidSession(true); // This is key!
       }
       if (data?.custNo) {
         setCustNo(data.custNo);
@@ -2023,13 +2039,20 @@ const ChatScreen = ({ navigation }) => {
       setShowPayment(true); // Let user retry
     }
   };
+  // const clearSession = async () => {
+  //   setSessionId(null);
+  //   try {
+  //     await AsyncStorage.removeItem("chat_session_id");
+  //   } catch (e) {
+  //     // ignore
+  //   }
+  // };
   const clearSession = async () => {
     setSessionId(null);
+    setHasValidSession(false);
     try {
       await AsyncStorage.removeItem("chat_session_id");
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   };
   const handleActivateOrder = async () => {
     if (orderActivated) return;
@@ -2096,7 +2119,7 @@ const ChatScreen = ({ navigation }) => {
       let successText;
       if (res.ok && result.data?.orderId) {
         if (isPorting) {
-          successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYou will receive a confirmation email soon.`;
+          successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
         } else if (selectedSimType === "physical") {
           successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
         } else {
@@ -2758,7 +2781,7 @@ const ChatScreen = ({ navigation }) => {
       {/* Date Picker */}
       {showDatePicker && (
         <Modal transparent animationType="slide">
-          <View style={tw`flex-1 justify-end bg-black/50`}>
+          <View style={tw`flex-1 justify-end`}>
             <View style={tw`bg-white rounded-t-2xl p-4`}>
               <View style={tw`flex-row justify-between items-center mb-4`}>
                 <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
