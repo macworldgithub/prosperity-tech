@@ -1641,7 +1641,7 @@ const ChatScreen = ({ navigation }) => {
       // Close the signup form
       setShowSignupForm(false);
       // Show number type selection
-      setShowNumberTypeSelection(true);
+      setShowSimTypeSelection(true);
     } catch (error) {
       console.error("Form submission error:", error);
       Alert.alert("Error", "Failed to submit form. Please try again.");
@@ -1975,7 +1975,7 @@ const ChatScreen = ({ navigation }) => {
       plan.planName || plan.name
     }`;
     await handleSend(planText);
-    setShowSimTypeSelection(true);
+    setShowPayment(true);
     // Scroll to bottom
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
@@ -1989,7 +1989,7 @@ const ChatScreen = ({ navigation }) => {
         onPress: () => {
           setSelectedSimType("e-sim");
           setShowSimTypeSelection(false);
-          setShowPayment(true);
+         setShowNumberTypeSelection(true);
         },
       },
     ]);
@@ -2013,7 +2013,7 @@ const ChatScreen = ({ navigation }) => {
       return;
     }
     setShowPhysicalSimInput(false);
-    setShowPayment(true);
+    setShowNumberTypeSelection(true);
   };
   const handleTokenReceived = async (token) => {
     setPaymentToken(token);
@@ -2549,6 +2549,55 @@ const ChatScreen = ({ navigation }) => {
             </ScrollView>
           </View>
         )}
+        {/* SIM Type Selection */}
+        {showSimTypeSelection && (
+          <View style={styles.formContainer}>
+            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+              <Text style={tw`text-black text-lg font-bold mb-3`}>
+                Choose SIM Type
+              </Text>
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton, tw`mb-3`]}
+                onPress={handleESimSelect}
+              >
+                <Text style={styles.buttonText}>e-SIM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton]}
+                onPress={handlePhysicalSimSelect}
+              >
+                <Text style={styles.buttonText}>Physical SIM</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+        {/* Physical SIM Input */}
+        {showPhysicalSimInput && (
+          <View style={styles.formContainer}>
+            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+              <Text style={tw`text-black text-lg font-bold mb-3`}>
+                Enter your 13-digit Physical SIM Number
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="13-digit SIM Number"
+                placeholderTextColor="#999"
+                keyboardType="number-pad"
+                maxLength={13}
+                value={physicalSimNumber}
+                onChangeText={(text) =>
+                  setPhysicalSimNumber(text.replace(/\D/g, ""))
+                }
+              />
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton, tw`mt-3`]}
+                onPress={handlePhysicalSimConfirm}
+              >
+                <Text style={styles.buttonText}>Confirm</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
         {/* Number Type Selection */}
         {showNumberTypeSelection && (
           <View style={styles.formContainer}>
@@ -2677,55 +2726,6 @@ const ChatScreen = ({ navigation }) => {
                 }}
               >
                 <Text style={styles.buttonText}>No</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        )}
-        {/* SIM Type Selection */}
-        {showSimTypeSelection && (
-          <View style={styles.formContainer}>
-            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
-              <Text style={tw`text-black text-lg font-bold mb-3`}>
-                Choose SIM Type
-              </Text>
-              <TouchableOpacity
-                style={[styles.button, styles.submitButton, tw`mb-3`]}
-                onPress={handleESimSelect}
-              >
-                <Text style={styles.buttonText}>e-SIM</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.submitButton]}
-                onPress={handlePhysicalSimSelect}
-              >
-                <Text style={styles.buttonText}>Physical SIM</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        )}
-        {/* Physical SIM Input */}
-        {showPhysicalSimInput && (
-          <View style={styles.formContainer}>
-            <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
-              <Text style={tw`text-black text-lg font-bold mb-3`}>
-                Enter your 13-digit Physical SIM Number
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="13-digit SIM Number"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-                maxLength={13}
-                value={physicalSimNumber}
-                onChangeText={(text) =>
-                  setPhysicalSimNumber(text.replace(/\D/g, ""))
-                }
-              />
-              <TouchableOpacity
-                style={[styles.button, styles.submitButton, tw`mt-3`]}
-                onPress={handlePhysicalSimConfirm}
-              >
-                <Text style={styles.buttonText}>Confirm</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
