@@ -1190,6 +1190,12 @@ export default function Home() {
               icon: "wifi",
               screen: "CoverageCheck",
             },
+            {
+              title: "View Order",
+              subtitle: "Check Order Details",
+              icon: "document-text-outline",
+              screen: "Order",
+            },
           ].map((item, i) => (
             <TouchableOpacity
               key={i}
@@ -1205,6 +1211,14 @@ export default function Home() {
                 )}
                 {item.icon === "wifi" && (
                   <Wifi size={22} color="blue" style={tw`mr-3`} />
+                )}
+                {item.icon === "document-text-outline" && (
+                  <Ionicons
+                    name="document-text-outline"
+                    size={22}
+                    color="blue"
+                    style={tw`mr-3`}
+                  />
                 )}
                 <View>
                   <Text style={tw`text-black font-medium`}>{item.title}</Text>
