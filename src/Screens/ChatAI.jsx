@@ -1444,6 +1444,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 // import { PaymentProcessCard } from "../components/PaymentProcessCard";
 import { PaymentCard } from "../components/PaymentCard";
 import { API_BASE_URL } from "../utils/config";
+import axios from "axios";
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([
@@ -1511,6 +1512,46 @@ const ChatScreen = ({ navigation }) => {
   const [otpCode, setOtpCode] = useState("");
   const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
   const [otpVerified, setOtpVerified] = useState(false);
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        setError("No authentication token found");
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { user, customer } = response.data;
+
+      setUser({
+        name: user.name || customer.firstName || "User",
+        email: user.email,
+        accountId: customer.custNo,
+        serviceAddress: customer.address || user.street || "N/A",
+        category_status_customer: customer.category_status_customer || "Active",
+      });
+
+      if (customer.custNo) {
+        fetchServiceData(customer.custNo);
+        fetchBalance(customer.custNo);
+        fetchMobileBalance(customer.custNo);
+      }
+      setLoading(false);
+    } catch (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  };
 
   const addBotMessage = (text) => {
     const botMsg = {
@@ -1783,6 +1824,44 @@ const ChatScreen = ({ navigation }) => {
       setChat((prev) => [...prev, errorMsg]);
     }
   };
+
+  const isDeleteAccountIntent = (text) => {
+    const lower = text.toLowerCase();
+    return (
+      lower.includes("delete my account") ||
+      lower.includes("close my account") ||
+      lower.includes("i want to delete account") ||
+      lower.includes("i want to close account")
+    );
+  };
+
+  const handleAccountDeletionFlow = async () => {
+    if (!user?.accountId) {
+      addBotMessage(
+        "You need to log in or sign up before you can delete your account."
+      );
+      return;
+    }
+
+    return new Promise((resolve) => {
+      Alert.alert(
+        "Confirm Account Deletion",
+        "Are you sure you want to delete your account? This action is permanent and cannot be undone.",
+        [
+          { text: "No", style: "cancel", onPress: () => resolve(false) },
+          {
+            text: "Yes",
+            style: "destructive",
+            onPress: async () => {
+              await handleSend(`Yes I am sure, my custNo is ${user.accountId}`);
+              resolve(true);
+            },
+          },
+        ]
+      );
+    });
+  };
+
   const handleSend = async (
     msgText,
     retryWithoutSession = false,
@@ -1790,6 +1869,34 @@ const ChatScreen = ({ navigation }) => {
     localIsPorting = isPorting
   ) => {
     if (!msgText.trim() || loading) return;
+
+    if (isDeleteAccountIntent(msgText)) {
+      if (!user?.accountId) {
+        addBotMessage(
+          "You need to log in or sign up before you can delete your account."
+        );
+        return;
+      }
+
+      try {
+        const token = await AsyncStorage.getItem("access_token");
+        await fetch(`${API_BASE_URL}chat/query`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ query: msgText, brand: "Prosperity-tech" }),
+        });
+
+        await handleAccountDeletionFlow();
+      } catch (err) {
+        console.error("Error during deletion flow:", err);
+        addBotMessage("Something went wrong. Please try again later.");
+      }
+      return;
+    }
+
     const query = msgText.trim();
     let userMsg;
     if (!silent) {
@@ -2003,11 +2110,11 @@ const ChatScreen = ({ navigation }) => {
     }`;
     await handleSend(planText);
     if (isPorting && !otpVerified) {
-    setShowOtpInput(true);
+      setShowOtpInput(true);
     addBotMessage("Please enter the OTP sent earlier to continue to payment.");
-} else {
-    setShowPayment(true);
-}
+    } else {
+      setShowPayment(true);
+    }
     // Scroll to bottom
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
@@ -2112,8 +2219,8 @@ const ChatScreen = ({ navigation }) => {
 
       setOtpVerified(true);
       if (selectedPlan) {
-    setShowPayment(true);
-}
+        setShowPayment(true);
+      }
       setShowOtpInput(false);
       addBotMessage(
         "OTP verified successfully! You can now proceed to payment."
