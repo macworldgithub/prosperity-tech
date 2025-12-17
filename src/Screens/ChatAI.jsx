@@ -22,6 +22,7 @@
 // // import { PaymentProcessCard } from "../components/PaymentProcessCard";
 // import { PaymentCard } from "../components/PaymentCard";
 // import { API_BASE_URL } from "../utils/config";
+// import axios from "axios";
 // const ChatScreen = ({ navigation }) => {
 //   const [message, setMessage] = useState("");
 //   const [chat, setChat] = useState([
@@ -42,6 +43,7 @@
 //   const [numberOptions, setNumberOptions] = useState([]);
 //   const [showDatePicker, setShowDatePicker] = useState(false);
 //   const [dobDateObj, setDobDateObj] = useState(new Date(1990, 0, 1));
+//   const [tempDobDate, setTempDobDate] = useState(new Date(1990, 0, 1));
 //   const { width } = useWindowDimensions();
 //   const [showPayment, setShowPayment] = useState(false);
 //   // const [showPaymentProcessCard, setShowPaymentProcessCard] = useState(false);
@@ -82,6 +84,52 @@
 //   const [showArnConfirm, setShowArnConfirm] = useState(false);
 //   const [hasSelectedNumber, setHasSelectedNumber] = useState(false);
 //   const scrollViewRef = useRef();
+//   const [hasValidSession, setHasValidSession] = useState(false);
+
+//   const [showOtpInput, setShowOtpInput] = useState(false);
+//   const [otpCode, setOtpCode] = useState("");
+//   const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
+//   const [otpVerified, setOtpVerified] = useState(false);
+
+//   const [user, setUser] = useState(null);
+
+//   useEffect(() => {
+//     fetchUserData();
+//   }, []);
+
+//   const fetchUserData = async () => {
+//     try {
+//       const token = await AsyncStorage.getItem("access_token");
+//       if (!token) {
+//         setError("No authentication token found");
+//         setLoading(false);
+//         return;
+//       }
+
+//       const response = await axios.get(`${API_BASE_URL}user/me`, {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+//       const { user, customer } = response.data;
+
+//       setUser({
+//         name: user.name || customer.firstName || "User",
+//         email: user.email,
+//         accountId: customer.custNo,
+//         serviceAddress: customer.address || user.street || "N/A",
+//         category_status_customer: customer.category_status_customer || "Active",
+//       });
+
+//       if (customer.custNo) {
+//         fetchServiceData(customer.custNo);
+//         fetchBalance(customer.custNo);
+//         fetchMobileBalance(customer.custNo);
+//       }
+//       setLoading(false);
+//     } catch (error) {
+//       setError(error.message);
+//       setLoading(false);
+//     }
+//   };
 
 //   const addBotMessage = (text) => {
 //     const botMsg = {
@@ -98,7 +146,7 @@
 
 //   // Form handling
 //   const handleFormChange = (name, value) => {
-//     setFormData((prev) => ({ ...prev, [name]: value.trim() }));
+//     setFormData((prev) => ({ ...prev, [name]: value }));
 //     setFormErrors((prev) => ({ ...prev, [name]: "" }));
 //   };
 //   const isDetailsRequest = (text) => {
@@ -186,11 +234,15 @@
 //   const handleFormSubmit = async () => {
 //     if (!validateForm()) return;
 //     // Construct full address as per desired payload
-//     const fullAddress = `${formData.address}, ${formData.suburb} ${formData.state} ${formData.postcode}, Australia`;
+//     const fullAddress = `${formData.address.trim()}, ${formData.suburb.trim()} ${formData.state.trim()} ${formData.postcode.trim()}, Australia`;
 //     try {
 //       // Store the form data with full address
 //       const formDataCopy = {
 //         ...formData,
+//         firstName: formData.firstName.trim(),
+//         surname: formData.surname.trim(),
+//         email: formData.email.trim(),
+//         phone: formData.phone.trim(),
 //         dob: formatDob(formData.dob),
 //         address: fullAddress,
 //       };
@@ -214,7 +266,7 @@
 //       // Close the signup form
 //       setShowSignupForm(false);
 //       // Show number type selection
-//       setShowNumberTypeSelection(true);
+//       setShowSimTypeSelection(true);
 //     } catch (error) {
 //       console.error("Form submission error:", error);
 //       Alert.alert("Error", "Failed to submit form. Please try again.");
@@ -270,12 +322,33 @@
 //       );
 //       return;
 //     }
-//     setLoading(true);
-//     await handleSend(existingNumber, false, true, true);
-//     setLoading(false);
-//     setSelectedSim(existingNumber);
-//     setShowExistingNumberInput(false);
-//     setShowNumTypeSelection(true);
+//     try {
+//       const res = await fetch(
+//         "https://prosperity.omnisuiteai.com/api/v1/auth/otp",
+//         {
+//           method: "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({
+//             custNo,
+//             destination: existingNumber,
+//           }),
+//         }
+//       );
+
+//       const data = await res.json();
+
+//       if (!res.ok) throw new Error(data.message || "OTP request failed");
+//       setLoading(true);
+//       setLoading(false);
+//       setOtpTransactionId(data.transactionId);
+//       setSelectedSim(existingNumber);
+//       setShowExistingNumberInput(false);
+//       setShowNumTypeSelection(true);
+//       addBotMessage("OTP sent successfully. You will verify it before payment.");
+//     } catch (err) {
+//       console.error(err);
+//       addBotMessage("Failed to send OTP. Please try again.");
+//     }
 //   };
 //   const handlePrepaid = async () => {
 //     setNumType("prepaid");
@@ -329,6 +402,44 @@
 //       setChat((prev) => [...prev, errorMsg]);
 //     }
 //   };
+
+//   const isDeleteAccountIntent = (text) => {
+//     const lower = text.toLowerCase();
+//     return (
+//       lower.includes("delete my account") ||
+//       lower.includes("close my account") ||
+//       lower.includes("i want to delete account") ||
+//       lower.includes("i want to close account")
+//     );
+//   };
+
+//   const handleAccountDeletionFlow = async () => {
+//     if (!user?.accountId) {
+//       addBotMessage(
+//         "You need to log in or sign up before you can delete your account."
+//       );
+//       return;
+//     }
+
+//     return new Promise((resolve) => {
+//       Alert.alert(
+//         "Confirm Account Deletion",
+//         "Are you sure you want to delete your account? This action is permanent and cannot be undone.",
+//         [
+//           { text: "No", style: "cancel", onPress: () => resolve(false) },
+//           {
+//             text: "Yes",
+//             style: "destructive",
+//             onPress: async () => {
+//               await handleSend(`Yes I am sure, my custNo is ${user.accountId}`);
+//               resolve(true);
+//             },
+//           },
+//         ]
+//       );
+//     });
+//   };
+
 //   const handleSend = async (
 //     msgText,
 //     retryWithoutSession = false,
@@ -336,6 +447,34 @@
 //     localIsPorting = isPorting
 //   ) => {
 //     if (!msgText.trim() || loading) return;
+
+//     if (isDeleteAccountIntent(msgText)) {
+//       if (!user?.accountId) {
+//         addBotMessage(
+//           "You need to log in or sign up before you can delete your account."
+//         );
+//         return;
+//       }
+
+//       try {
+//         const token = await AsyncStorage.getItem("access_token");
+//         await fetch(`${API_BASE_URL}chat/query`, {
+//           method: "POST",
+//           headers: {
+//             "Content-Type": "application/json",
+//             Authorization: `Bearer ${token}`,
+//           },
+//           body: JSON.stringify({ query: msgText, brand: "Prosperity-tech" }),
+//         });
+
+//         await handleAccountDeletionFlow();
+//       } catch (err) {
+//         console.error("Error during deletion flow:", err);
+//         addBotMessage("Something went wrong. Please try again later.");
+//       }
+//       return;
+//     }
+
 //     const query = msgText.trim();
 //     let userMsg;
 //     if (!silent) {
@@ -353,11 +492,20 @@
 //       setLoading(true);
 //     }
 //     try {
+//       // let payload = {
+//       //   query,
+//       //   brand: "Prosperity-tech",
+//       // };
+//       // if (!retryWithoutSession && sessionId) {
+//       //   payload.session_id = sessionId;
+//       // }
 //       let payload = {
 //         query,
 //         brand: "Prosperity-tech",
 //       };
-//       if (!retryWithoutSession && sessionId) {
+
+//       // Only send session_id if we've confirmed it's valid
+//       if (!retryWithoutSession && hasValidSession && sessionId) {
 //         payload.session_id = sessionId;
 //       }
 //       const token = await AsyncStorage.getItem("access_token");
@@ -380,13 +528,20 @@
 //         );
 //       }
 //       const data = await response.json();
-//       if (!sessionId && !retryWithoutSession && data.session_id) {
-//         setSessionId(data.session_id);
-//         try {
+//       // if (!sessionId && !retryWithoutSession && data.session_id) {
+//       //   setSessionId(data.session_id);
+//       //   try {
+//       //     await AsyncStorage.setItem("chat_session_id", data.session_id);
+//       //   } catch (e) {
+//       //     // ignore storage errors
+//       //   }
+//       // }
+//       if (data.session_id) {
+//         if (!sessionId || data.session_id !== sessionId) {
+//           setSessionId(data.session_id);
 //           await AsyncStorage.setItem("chat_session_id", data.session_id);
-//         } catch (e) {
-//           // ignore storage errors
 //         }
+//         setHasValidSession(true); // This is key!
 //       }
 //       if (data?.custNo) {
 //         setCustNo(data.custNo);
@@ -532,7 +687,12 @@
 //       plan.planName || plan.name
 //     }`;
 //     await handleSend(planText);
-//     setShowSimTypeSelection(true);
+//     if (isPorting && !otpVerified) {
+//       setShowOtpInput(true);
+//     addBotMessage("Please enter the OTP sent earlier to continue to payment.");
+//     } else {
+//       setShowPayment(true);
+//     }
 //     // Scroll to bottom
 //     if (scrollViewRef.current) {
 //       scrollViewRef.current.scrollToEnd({ animated: true });
@@ -546,7 +706,7 @@
 //         onPress: () => {
 //           setSelectedSimType("e-sim");
 //           setShowSimTypeSelection(false);
-//           setShowPayment(true);
+//           setShowNumberTypeSelection(true);
 //         },
 //       },
 //     ]);
@@ -570,7 +730,7 @@
 //       return;
 //     }
 //     setShowPhysicalSimInput(false);
-//     setShowPayment(true);
+//     setShowNumberTypeSelection(true);
 //   };
 //   const handleTokenReceived = async (token) => {
 //     setPaymentToken(token);
@@ -596,14 +756,59 @@
 //       setShowPayment(true); // Let user retry
 //     }
 //   };
+//   // const clearSession = async () => {
+//   //   setSessionId(null);
+//   //   try {
+//   //     await AsyncStorage.removeItem("chat_session_id");
+//   //   } catch (e) {
+//   //     // ignore
+//   //   }
+//   // };
 //   const clearSession = async () => {
 //     setSessionId(null);
+//     setHasValidSession(false);
 //     try {
 //       await AsyncStorage.removeItem("chat_session_id");
-//     } catch (e) {
-//       // ignore
+//     } catch (e) {}
+//   };
+
+//   const handleOtpVerify = async () => {
+//     if (otpCode.length !== 6) {
+//       alert("Please enter a 6-digit OTP");
+//       return;
+//     }
+
+//     try {
+//       const res = await fetch(
+//         "https://prosperity.omnisuiteai.com/api/v1/auth/otp/verify",
+//         {
+//           method: "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({
+//             code: otpCode,
+//             transactionId: otpTransactionId,
+//           }),
+//         }
+//       );
+
+//       const data = await res.json();
+
+//       if (!res.ok) throw new Error(data.message || "OTP verification failed");
+
+//       setOtpVerified(true);
+//       if (selectedPlan) {
+//         setShowPayment(true);
+//       }
+//       setShowOtpInput(false);
+//       addBotMessage(
+//         "OTP verified successfully! You can now proceed to payment."
+//       );
+//     } catch (err) {
+//       console.error(err);
+//       addBotMessage("OTP verification failed. Please try again.");
 //     }
 //   };
+
 //   const handleActivateOrder = async () => {
 //     if (orderActivated) return;
 //     setOrderActivated(true);
@@ -669,7 +874,7 @@
 //       let successText;
 //       if (res.ok && result.data?.orderId) {
 //         if (isPorting) {
-//           successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}\n\nYou will receive a confirmation email soon.`;
+//           successText = `Great News...Your number has been ported to Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
 //         } else if (selectedSimType === "physical") {
 //           successText = `Great News...Your Physical SIM has been activated with Prosperity-Tech!\n\nOrder ID: ${result.data.orderId}`;
 //         } else {
@@ -724,22 +929,22 @@
 //   };
 
 //   const onDateChange = (event, selectedDate) => {
-//     setShowDatePicker(false);
 //     if (selectedDate) {
-//       setDobDateObj(selectedDate);
-//       const formattedDate = formatToLocalDate(selectedDate);
-//       handleFormChange("dob", formattedDate);
+//       setTempDobDate(selectedDate);
 //     }
 //   };
 
-//   const handleIosDone = () => {
+//   const handleDone = () => {
 //     setShowDatePicker(false);
-//     const formattedDate = formatToLocalDate(dobDateObj);
+//     setDobDateObj(tempDobDate);
+//     const formattedDate = formatToLocalDate(tempDobDate);
 //     handleFormChange("dob", formattedDate);
 //   };
-//   const handleIosCancel = () => {
+
+//   const handleCancel = () => {
 //     setShowDatePicker(false);
 //   };
+
 //   // Load session on mount
 //   useEffect(() => {
 //     (async () => {
@@ -985,7 +1190,10 @@
 //                       paddingVertical: 12,
 //                     },
 //                   ]}
-//                   onPress={() => setShowDatePicker(true)}
+//                   onPress={() => {
+//                     setTempDobDate(dobDateObj);
+//                     setShowDatePicker(true);
+//                   }}
 //                 >
 //                   <Text style={{ color: formData.dob ? "#000" : "#999" }}>
 //                     {formData.dob || "Date of Birth (YYYY-MM-DD) *"}
@@ -1093,6 +1301,55 @@
 //                   )}
 //                 </TouchableOpacity>
 //               </View>
+//             </ScrollView>
+//           </View>
+//         )}
+//         {/* SIM Type Selection */}
+//         {showSimTypeSelection && (
+//           <View style={styles.formContainer}>
+//             <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+//               <Text style={tw`text-black text-lg font-bold mb-3`}>
+//                 Choose SIM Type
+//               </Text>
+//               <TouchableOpacity
+//                 style={[styles.button, styles.submitButton, tw`mb-3`]}
+//                 onPress={handleESimSelect}
+//               >
+//                 <Text style={styles.buttonText}>e-SIM</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 style={[styles.button, styles.submitButton]}
+//                 onPress={handlePhysicalSimSelect}
+//               >
+//                 <Text style={styles.buttonText}>Physical SIM</Text>
+//               </TouchableOpacity>
+//             </ScrollView>
+//           </View>
+//         )}
+//         {/* Physical SIM Input */}
+//         {showPhysicalSimInput && (
+//           <View style={styles.formContainer}>
+//             <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
+//               <Text style={tw`text-black text-lg font-bold mb-3`}>
+//                 Enter your 13-digit Physical SIM Number
+//               </Text>
+//               <TextInput
+//                 style={styles.input}
+//                 placeholder="13-digit SIM Number"
+//                 placeholderTextColor="#999"
+//                 keyboardType="number-pad"
+//                 maxLength={13}
+//                 value={physicalSimNumber}
+//                 onChangeText={(text) =>
+//                   setPhysicalSimNumber(text.replace(/\D/g, ""))
+//                 }
+//               />
+//               <TouchableOpacity
+//                 style={[styles.button, styles.submitButton, tw`mt-3`]}
+//                 onPress={handlePhysicalSimConfirm}
+//               >
+//                 <Text style={styles.buttonText}>Confirm</Text>
+//               </TouchableOpacity>
 //             </ScrollView>
 //           </View>
 //         )}
@@ -1228,57 +1485,49 @@
 //             </ScrollView>
 //           </View>
 //         )}
-//         {/* SIM Type Selection */}
-//         {showSimTypeSelection && (
-//           <View style={styles.formContainer}>
-//             <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
-//               <Text style={tw`text-black text-lg font-bold mb-3`}>
-//                 Choose SIM Type
+//         {showOtpInput && (
+//           <View
+//             style={[
+//               tw`flex flex-col items-center gap-3 p-4 rounded-lg border`,
+//               {
+//                 backgroundColor: "rgba(255,255,255,0.1)",
+//                 borderColor: "rgba(255,255,255,0.3)",
+//               },
+//             ]}
+//           >
+//             <Text style={tw`text-white text-sm sm:text-base text-center`}>
+//               Enter the OTP sent to your existing number:
+//             </Text>
+
+//             <TextInput
+//               maxLength={6}
+//               value={otpCode}
+//               onChangeText={(text) => setOtpCode(text.replace(/\D/g, ""))}
+//               style={[
+//                 tw`w-full p-2 rounded border text-center text-white text-sm sm:text-base`,
+//                 {
+//                   backgroundColor: "transparent",
+//                   borderColor: "rgba(255,255,255,0.5)",
+//                 },
+//               ]}
+//               placeholder="Enter 6-digit OTP"
+//               placeholderTextColor="rgba(255,255,255,0.5)"
+//               keyboardType="numeric"
+//             />
+
+//             <TouchableOpacity
+//               onPress={handleOtpVerify}
+//               style={[tw`px-4 py-1 rounded`, { backgroundColor: "#2bb673" }]}
+//             >
+//               <Text style={tw`text-white text-xs sm:text-sm text-center`}>
+//                 Verify OTP
 //               </Text>
-//               <TouchableOpacity
-//                 style={[styles.button, styles.submitButton, tw`mb-3`]}
-//                 onPress={handleESimSelect}
-//               >
-//                 <Text style={styles.buttonText}>e-SIM</Text>
-//               </TouchableOpacity>
-//               <TouchableOpacity
-//                 style={[styles.button, styles.submitButton]}
-//                 onPress={handlePhysicalSimSelect}
-//               >
-//                 <Text style={styles.buttonText}>Physical SIM</Text>
-//               </TouchableOpacity>
-//             </ScrollView>
+//             </TouchableOpacity>
 //           </View>
 //         )}
-//         {/* Physical SIM Input */}
-//         {showPhysicalSimInput && (
-//           <View style={styles.formContainer}>
-//             <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled={true}>
-//               <Text style={tw`text-black text-lg font-bold mb-3`}>
-//                 Enter your 13-digit Physical SIM Number
-//               </Text>
-//               <TextInput
-//                 style={styles.input}
-//                 placeholder="13-digit SIM Number"
-//                 placeholderTextColor="#999"
-//                 keyboardType="number-pad"
-//                 maxLength={13}
-//                 value={physicalSimNumber}
-//                 onChangeText={(text) =>
-//                   setPhysicalSimNumber(text.replace(/\D/g, ""))
-//                 }
-//               />
-//               <TouchableOpacity
-//                 style={[styles.button, styles.submitButton, tw`mt-3`]}
-//                 onPress={handlePhysicalSimConfirm}
-//               >
-//                 <Text style={styles.buttonText}>Confirm</Text>
-//               </TouchableOpacity>
-//             </ScrollView>
-//           </View>
-//         )}
+
 //         {/* Payment Flow Components */}
-//         {showPayment && selectedPlan && (
+//         {showPayment && selectedPlan && (numType ? otpVerified : true) && (
 //           <View style={styles.formContainer}>
 //             <PaymentCard
 //               onTokenReceived={handleTokenReceived}
@@ -1326,46 +1575,37 @@
 //           )}
 //       </KeyboardAvoidingView>
 //       {/* Date Picker */}
-//       {showDatePicker &&
-//         (Platform.OS === "android" ? (
-//           <DateTimePicker
-//             value={dobDateObj}
-//             mode="date"
-//             display="default"
-//             maximumDate={new Date()}
-//             onChange={onDateChange}
-//           />
-//         ) : (
-//           <Modal transparent animationType="slide">
-//             <View style={tw`flex-1 justify-end bg-black/50`}>
-//               <View style={tw`bg-white rounded-t-2xl p-4`}>
-//                 <View style={tw`flex-row justify-between items-center mb-4`}>
-//                   <TouchableOpacity onPress={handleIosCancel} style={tw`p-2`}>
-//                     <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
-//                   </TouchableOpacity>
-//                   <Text
-//                     style={tw`text-center flex-1 font-semibold text-gray-700`}
-//                   >
-//                     Select Date of Birth
-//                   </Text>
-//                   <TouchableOpacity onPress={handleIosDone} style={tw`p-2`}>
-//                     <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
-//                   </TouchableOpacity>
-//                 </View>
-//                 <View style={{ height: 216 }}>
-//                   <DateTimePicker
-//                     value={dobDateObj}
-//                     mode="date"
-//                     display="spinner"
-//                     onChange={onDateChange}
-//                     maximumDate={new Date()}
-//                     themeVariant="light"
-//                   />
-//                 </View>
+//       {showDatePicker && (
+//         <Modal transparent animationType="slide">
+//           <View style={tw`flex-1 justify-end`}>
+//             <View style={tw`bg-white rounded-t-2xl p-4`}>
+//               <View style={tw`flex-row justify-between items-center mb-4`}>
+//                 <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
+//                   <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
+//                 </TouchableOpacity>
+//                 <Text
+//                   style={tw`text-center flex-1 font-semibold text-gray-700`}
+//                 >
+//                   Select Date of Birth
+//                 </Text>
+//                 <TouchableOpacity onPress={handleDone} style={tw`p-2`}>
+//                   <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
+//                 </TouchableOpacity>
+//               </View>
+//               <View style={{ height: 216 }}>
+//                 <DateTimePicker
+//                   value={tempDobDate}
+//                   mode="date"
+//                   display="spinner"
+//                   onChange={onDateChange}
+//                   maximumDate={new Date()}
+//                   themeVariant="light"
+//                 />
 //               </View>
 //             </View>
-//           </Modal>
-//         ))}
+//           </View>
+//         </Modal>
+//       )}
 //     </LinearGradient>
 //   );
 // };
@@ -1420,6 +1660,7 @@
 //   },
 // });
 // export default ChatScreen;
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -1507,18 +1748,14 @@ const ChatScreen = ({ navigation }) => {
   const [hasSelectedNumber, setHasSelectedNumber] = useState(false);
   const scrollViewRef = useRef();
   const [hasValidSession, setHasValidSession] = useState(false);
-
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
   const [otpVerified, setOtpVerified] = useState(false);
-
   const [user, setUser] = useState(null);
-
   useEffect(() => {
     fetchUserData();
   }, []);
-
   const fetchUserData = async () => {
     try {
       const token = await AsyncStorage.getItem("access_token");
@@ -1527,12 +1764,10 @@ const ChatScreen = ({ navigation }) => {
         setLoading(false);
         return;
       }
-
       const response = await axios.get(`${API_BASE_URL}user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const { user, customer } = response.data;
-
       setUser({
         name: user.name || customer.firstName || "User",
         email: user.email,
@@ -1540,7 +1775,6 @@ const ChatScreen = ({ navigation }) => {
         serviceAddress: customer.address || user.street || "N/A",
         category_status_customer: customer.category_status_customer || "Active",
       });
-
       if (customer.custNo) {
         fetchServiceData(customer.custNo);
         fetchBalance(customer.custNo);
@@ -1552,7 +1786,6 @@ const ChatScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
   const addBotMessage = (text) => {
     const botMsg = {
       id: Date.now() + Math.floor(Math.random() * 1000),
@@ -1565,7 +1798,6 @@ const ChatScreen = ({ navigation }) => {
     };
     setChat((prev) => [...prev, botMsg]);
   };
-
   // Form handling
   const handleFormChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -1756,9 +1988,7 @@ const ChatScreen = ({ navigation }) => {
           }),
         }
       );
-
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || "OTP request failed");
       setLoading(true);
       setLoading(false);
@@ -1766,7 +1996,9 @@ const ChatScreen = ({ navigation }) => {
       setSelectedSim(existingNumber);
       setShowExistingNumberInput(false);
       setShowNumTypeSelection(true);
-      addBotMessage("OTP sent successfully. You will verify it before payment.");
+      addBotMessage(
+        "OTP sent successfully. You will verify it before payment."
+      );
     } catch (err) {
       console.error(err);
       addBotMessage("Failed to send OTP. Please try again.");
@@ -1824,7 +2056,6 @@ const ChatScreen = ({ navigation }) => {
       setChat((prev) => [...prev, errorMsg]);
     }
   };
-
   const isDeleteAccountIntent = (text) => {
     const lower = text.toLowerCase();
     return (
@@ -1834,7 +2065,6 @@ const ChatScreen = ({ navigation }) => {
       lower.includes("i want to close account")
     );
   };
-
   const handleAccountDeletionFlow = async () => {
     if (!user?.accountId) {
       addBotMessage(
@@ -1842,7 +2072,6 @@ const ChatScreen = ({ navigation }) => {
       );
       return;
     }
-
     return new Promise((resolve) => {
       Alert.alert(
         "Confirm Account Deletion",
@@ -1861,7 +2090,6 @@ const ChatScreen = ({ navigation }) => {
       );
     });
   };
-
   const handleSend = async (
     msgText,
     retryWithoutSession = false,
@@ -1869,7 +2097,6 @@ const ChatScreen = ({ navigation }) => {
     localIsPorting = isPorting
   ) => {
     if (!msgText.trim() || loading) return;
-
     if (isDeleteAccountIntent(msgText)) {
       if (!user?.accountId) {
         addBotMessage(
@@ -1877,7 +2104,6 @@ const ChatScreen = ({ navigation }) => {
         );
         return;
       }
-
       try {
         const token = await AsyncStorage.getItem("access_token");
         await fetch(`${API_BASE_URL}chat/query`, {
@@ -1888,7 +2114,6 @@ const ChatScreen = ({ navigation }) => {
           },
           body: JSON.stringify({ query: msgText, brand: "Prosperity-tech" }),
         });
-
         await handleAccountDeletionFlow();
       } catch (err) {
         console.error("Error during deletion flow:", err);
@@ -1896,7 +2121,6 @@ const ChatScreen = ({ navigation }) => {
       }
       return;
     }
-
     const query = msgText.trim();
     let userMsg;
     if (!silent) {
@@ -1915,17 +2139,16 @@ const ChatScreen = ({ navigation }) => {
     }
     try {
       // let payload = {
-      //   query,
-      //   brand: "Prosperity-tech",
+      // query,
+      // brand: "Prosperity-tech",
       // };
       // if (!retryWithoutSession && sessionId) {
-      //   payload.session_id = sessionId;
+      // payload.session_id = sessionId;
       // }
       let payload = {
         query,
         brand: "Prosperity-tech",
       };
-
       // Only send session_id if we've confirmed it's valid
       if (!retryWithoutSession && hasValidSession && sessionId) {
         payload.session_id = sessionId;
@@ -1951,12 +2174,12 @@ const ChatScreen = ({ navigation }) => {
       }
       const data = await response.json();
       // if (!sessionId && !retryWithoutSession && data.session_id) {
-      //   setSessionId(data.session_id);
-      //   try {
-      //     await AsyncStorage.setItem("chat_session_id", data.session_id);
-      //   } catch (e) {
-      //     // ignore storage errors
-      //   }
+      // setSessionId(data.session_id);
+      // try {
+      // await AsyncStorage.setItem("chat_session_id", data.session_id);
+      // } catch (e) {
+      // // ignore storage errors
+      // }
       // }
       if (data.session_id) {
         if (!sessionId || data.session_id !== sessionId) {
@@ -2111,7 +2334,9 @@ const ChatScreen = ({ navigation }) => {
     await handleSend(planText);
     if (isPorting && !otpVerified) {
       setShowOtpInput(true);
-    addBotMessage("Please enter the OTP sent earlier to continue to payment.");
+      addBotMessage(
+        "Please enter the OTP sent earlier to continue to payment."
+      );
     } else {
       setShowPayment(true);
     }
@@ -2179,12 +2404,12 @@ const ChatScreen = ({ navigation }) => {
     }
   };
   // const clearSession = async () => {
-  //   setSessionId(null);
-  //   try {
-  //     await AsyncStorage.removeItem("chat_session_id");
-  //   } catch (e) {
-  //     // ignore
-  //   }
+  // setSessionId(null);
+  // try {
+  // await AsyncStorage.removeItem("chat_session_id");
+  // } catch (e) {
+  // // ignore
+  // }
   // };
   const clearSession = async () => {
     setSessionId(null);
@@ -2193,13 +2418,11 @@ const ChatScreen = ({ navigation }) => {
       await AsyncStorage.removeItem("chat_session_id");
     } catch (e) {}
   };
-
   const handleOtpVerify = async () => {
     if (otpCode.length !== 6) {
       alert("Please enter a 6-digit OTP");
       return;
     }
-
     try {
       const res = await fetch(
         "https://prosperity.omnisuiteai.com/api/v1/auth/otp/verify",
@@ -2212,11 +2435,8 @@ const ChatScreen = ({ navigation }) => {
           }),
         }
       );
-
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || "OTP verification failed");
-
       setOtpVerified(true);
       if (selectedPlan) {
         setShowPayment(true);
@@ -2230,7 +2450,6 @@ const ChatScreen = ({ navigation }) => {
       addBotMessage("OTP verification failed. Please try again.");
     }
   };
-
   const handleActivateOrder = async () => {
     if (orderActivated) return;
     setOrderActivated(true);
@@ -2349,24 +2568,30 @@ const ChatScreen = ({ navigation }) => {
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
-
   const onDateChange = (event, selectedDate) => {
-    if (selectedDate) {
-      setTempDobDate(selectedDate);
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+      if (selectedDate) {
+        setDobDateObj(selectedDate);
+        const formattedDate = formatToLocalDate(selectedDate);
+        handleFormChange("dob", formattedDate);
+      }
+    } else {
+      // For iOS spinner, just update temp
+      if (selectedDate) {
+        setTempDobDate(selectedDate);
+      }
     }
   };
-
   const handleDone = () => {
     setShowDatePicker(false);
     setDobDateObj(tempDobDate);
     const formattedDate = formatToLocalDate(tempDobDate);
     handleFormChange("dob", formattedDate);
   };
-
   const handleCancel = () => {
     setShowDatePicker(false);
   };
-
   // Load session on mount
   useEffect(() => {
     (async () => {
@@ -2920,7 +3145,6 @@ const ChatScreen = ({ navigation }) => {
             <Text style={tw`text-white text-sm sm:text-base text-center`}>
               Enter the OTP sent to your existing number:
             </Text>
-
             <TextInput
               maxLength={6}
               value={otpCode}
@@ -2936,7 +3160,6 @@ const ChatScreen = ({ navigation }) => {
               placeholderTextColor="rgba(255,255,255,0.5)"
               keyboardType="numeric"
             />
-
             <TouchableOpacity
               onPress={handleOtpVerify}
               style={[tw`px-4 py-1 rounded`, { backgroundColor: "#2bb673" }]}
@@ -2947,7 +3170,6 @@ const ChatScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         )}
-
         {/* Payment Flow Components */}
         {showPayment && selectedPlan && (numType ? otpVerified : true) && (
           <View style={styles.formContainer}>
@@ -2996,38 +3218,47 @@ const ChatScreen = ({ navigation }) => {
             </View>
           )}
       </KeyboardAvoidingView>
-      {/* Date Picker */}
-      {showDatePicker && (
-        <Modal transparent animationType="slide">
-          <View style={tw`flex-1 justify-end`}>
-            <View style={tw`bg-white rounded-t-2xl p-4`}>
-              <View style={tw`flex-row justify-between items-center mb-4`}>
-                <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
-                  <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
-                </TouchableOpacity>
-                <Text
-                  style={tw`text-center flex-1 font-semibold text-gray-700`}
-                >
-                  Select Date of Birth
-                </Text>
-                <TouchableOpacity onPress={handleDone} style={tw`p-2`}>
-                  <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ height: 216 }}>
-                <DateTimePicker
-                  value={tempDobDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={onDateChange}
-                  maximumDate={new Date()}
-                  themeVariant="light"
-                />
+      {/* Date Picker - Conditional for Android/iOS */}
+      {showDatePicker &&
+        (Platform.OS === "android" ? (
+          <DateTimePicker
+            value={dobDateObj}
+            mode="date"
+            display="default"
+            maximumDate={new Date()}
+            onChange={onDateChange}
+          />
+        ) : (
+          <Modal transparent animationType="slide">
+            <View style={tw`flex-1 justify-end bg-black/50`}>
+              <View style={tw`bg-white rounded-t-2xl p-4`}>
+                <View style={tw`flex-row justify-between items-center mb-4`}>
+                  <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
+                    <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text
+                    style={tw`text-center flex-1 font-semibold text-gray-700`}
+                  >
+                    Select Date of Birth
+                  </Text>
+                  <TouchableOpacity onPress={handleDone} style={tw`p-2`}>
+                    <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ height: 216 }}>
+                  <DateTimePicker
+                    value={tempDobDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                    themeVariant="light"
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      )}
+          </Modal>
+        ))}
     </LinearGradient>
   );
 };
