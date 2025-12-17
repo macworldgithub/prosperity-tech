@@ -1685,6 +1685,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 // import { PaymentProcessCard } from "../components/PaymentProcessCard";
 import { PaymentCard } from "../components/PaymentCard";
 import { API_BASE_URL } from "../utils/config";
+import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
@@ -1753,6 +1754,54 @@ const ChatScreen = ({ navigation }) => {
   const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
   const [otpVerified, setOtpVerified] = useState(false);
   const [user, setUser] = useState(null);
+  const [states, setStates] = useState([]);
+  const [loadingStates, setLoadingStates] = useState(true);
+
+  useEffect(() => {
+    if (showSignupForm && states.length === 0) {
+      const fetchStates = async () => {
+        try {
+          setLoadingStates(true);
+
+          const response = await fetch(
+            "https://prosperity.omnisuiteai.com/states",
+            {
+              method: "GET",
+              headers: { accept: "*/*" },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch states: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          // Basic validation - ensure it's an array with code/name
+          if (
+            Array.isArray(data) &&
+            data.every((item) => item.code && item.name)
+          ) {
+            setStates(data);
+          } else {
+            throw new Error("Invalid states data format");
+          }
+        } catch (error) {
+          console.error("States API error:", error);
+          Alert.alert(
+            "Network Error",
+            "Unable to load states at this time. Please check your internet connection and try again."
+          );
+          // Do NOT set any fallback - keep states empty
+          setStates([]); // Ensures dropdown shows error state
+        } finally {
+          setLoadingStates(false);
+        }
+      };
+
+      fetchStates();
+    }
+  }, [showSignupForm, states.length]);
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -2881,7 +2930,7 @@ const ChatScreen = ({ navigation }) => {
                     <Text style={styles.errorText}>{formErrors.suburb}</Text>
                   )}
                 </View>
-                <View style={tw`w-1/4 mr-2`}>
+                {/* <View style={tw`w-1/4 mr-2`}>
                   <TextInput
                     style={[
                       styles.input,
@@ -2895,7 +2944,58 @@ const ChatScreen = ({ navigation }) => {
                   {formErrors.state && (
                     <Text style={styles.errorText}>{formErrors.state}</Text>
                   )}
+                </View> */}
+                {/* State Dropdown - API Only, No Hardcode */}
+                <View style={tw`mb-3`}>
+                  <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>
+                    State / Territory *
+                  </Text>
+                  {loadingStates ? (
+                    <View
+                      style={tw`bg-gray-200 border border-gray-300 rounded-lg px-3 py-4`}
+                    >
+                      <ActivityIndicator size="small" color="#000" />
+                      <Text style={tw`text-center text-gray-600 mt-2`}>
+                        Loading states...
+                      </Text>
+                    </View>
+                  ) : states.length === 0 ? (
+                    <View
+                      style={tw`bg-red-50 border border-red-300 rounded-lg px-3 py-4`}
+                    >
+                      <Text style={tw`text-red-600 text-center`}>
+                        Failed to load states. Please check your connection and
+                        try again.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={tw`border border-gray-300 rounded-lg bg-white`}
+                    >
+                      <Picker
+                        selectedValue={formData.state}
+                        onValueChange={(itemValue) =>
+                          handleFormChange("state", itemValue)
+                        }
+                        style={{ height: 50 }}
+                        dropdownIconColor="#666"
+                      >
+                        <Picker.Item label="Select your state" value="" />
+                        {states.map((s) => (
+                          <Picker.Item
+                            key={s.code}
+                            label={s.code}
+                            value={s.code} // Sends only the code (NSW, VIC, etc.)
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+                  )}
+                  {formErrors.state && (
+                    <Text style={styles.errorText}>{formErrors.state}</Text>
+                  )}
                 </View>
+
                 <View style={tw`w-1/4`}>
                   <TextInput
                     style={[
@@ -2915,19 +3015,30 @@ const ChatScreen = ({ navigation }) => {
                 </View>
               </View>
               <View style={tw`mb-3`}>
+                <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>
+                  Create your 4-digit PIN *
+                </Text>
                 <TextInput
                   style={[styles.input, formErrors.pin && styles.inputError]}
-                  placeholder="4-digit PIN *"
+                  placeholder="Create your PIN"
                   placeholderTextColor="#999"
                   secureTextEntry
                   keyboardType="number-pad"
                   maxLength={4}
                   value={formData.pin}
-                  onChangeText={(text) => handleFormChange("pin", text)}
+                  onChangeText={(text) =>
+                    handleFormChange(
+                      "pin",
+                      text.replace(/[^0-9]/g, "").slice(0, 4)
+                    )
+                  }
                 />
                 {formErrors.pin && (
                   <Text style={styles.errorText}>{formErrors.pin}</Text>
                 )}
+                <Text style={tw`text-xs text-gray-500 mt-1`}>
+                  This PIN will be used to securely log in to your account
+                </Text>
               </View>
               <View style={tw`flex-row justify-between`}>
                 <TouchableOpacity
