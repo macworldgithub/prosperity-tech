@@ -1,4 +1,4 @@
-package com.prosperitytech
+package com.ayla02.prosperitytech
 
 import android.app.Application
 import android.content.res.Configuration

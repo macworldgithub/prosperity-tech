@@ -2,6 +2,12 @@
   "expo": {
     "name": "prosperity-tech",
     "slug": "prosperity-tech",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "android": {
+      "package": "com.ayla02.prosperitytech"
+    },
+    "ios": {
+      "bundleIdentifier": "com.ayla02.prosperitytech"
+    }
   }
 }
