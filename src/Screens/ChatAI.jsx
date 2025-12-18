@@ -1756,55 +1756,26 @@ const ChatScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [states, setStates] = useState([]);
   const [loadingStates, setLoadingStates] = useState(true);
-
-  useEffect(() => {
-    if (showSignupForm && states.length === 0) {
-      const fetchStates = async () => {
-        try {
-          setLoadingStates(true);
-
-          const response = await fetch(
-            "https://prosperity.omnisuiteai.com/states",
-            {
-              method: "GET",
-              headers: { accept: "*/*" },
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch states: ${response.status}`);
-          }
-
-          const data = await response.json();
-
-          // Basic validation - ensure it's an array with code/name
-          if (
-            Array.isArray(data) &&
-            data.every((item) => item.code && item.name)
-          ) {
-            setStates(data);
-          } else {
-            throw new Error("Invalid states data format");
-          }
-        } catch (error) {
-          console.error("States API error:", error);
-          Alert.alert(
-            "Network Error",
-            "Unable to load states at this time. Please check your internet connection and try again."
-          );
-          // Do NOT set any fallback - keep states empty
-          setStates([]); // Ensures dropdown shows error state
-        } finally {
-          setLoadingStates(false);
-        }
-      };
-
-      fetchStates();
-    }
-  }, [showSignupForm, states.length]);
+  const [showStatePicker, setShowStatePicker] = useState(false);
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    if (showStatePicker && states.length === 0) {
+      setLoadingStates(true);
+      fetch("https://prosperity.omnisuiteai.com/states")
+        .then((res) => res.json())
+        .then((data) => setStates(data))
+        .catch((err) => console.error("Failed to fetch states:", err))
+        .finally(() => setLoadingStates(false));
+    }
+  }, [showStatePicker]);
+
+  // useEffect(() => {
+  //   fetchUserData();
+  // }, []);
+
   const fetchUserData = async () => {
     try {
       const token = await AsyncStorage.getItem("access_token");
@@ -2930,72 +2901,23 @@ const ChatScreen = ({ navigation }) => {
                     <Text style={styles.errorText}>{formErrors.suburb}</Text>
                   )}
                 </View>
-                {/* <View style={tw`w-1/4 mr-2`}>
-                  <TextInput
+                <View style={tw`w-1/4 mr-2`}>
+                  <TouchableOpacity
                     style={[
                       styles.input,
                       formErrors.state && styles.inputError,
+                      { justifyContent: "center" },
                     ]}
-                    placeholder="State *"
-                    placeholderTextColor="#999"
-                    value={formData.state}
-                    onChangeText={(text) => handleFormChange("state", text)}
-                  />
-                  {formErrors.state && (
-                    <Text style={styles.errorText}>{formErrors.state}</Text>
-                  )}
-                </View> */}
-                {/* State Dropdown - API Only, No Hardcode */}
-                <View style={tw`mb-3`}>
-                  <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>
-                    State / Territory *
-                  </Text>
-                  {loadingStates ? (
-                    <View
-                      style={tw`bg-gray-200 border border-gray-300 rounded-lg px-3 py-4`}
-                    >
-                      <ActivityIndicator size="small" color="#000" />
-                      <Text style={tw`text-center text-gray-600 mt-2`}>
-                        Loading states...
-                      </Text>
-                    </View>
-                  ) : states.length === 0 ? (
-                    <View
-                      style={tw`bg-red-50 border border-red-300 rounded-lg px-3 py-4`}
-                    >
-                      <Text style={tw`text-red-600 text-center`}>
-                        Failed to load states. Please check your connection and
-                        try again.
-                      </Text>
-                    </View>
-                  ) : (
-                    <View
-                      style={tw`border border-gray-300 rounded-lg bg-white`}
-                    >
-                      <Picker
-                        selectedValue={formData.state}
-                        onValueChange={(itemValue) =>
-                          handleFormChange("state", itemValue)
-                        }
-                        style={{ height: 50 }}
-                        dropdownIconColor="#666"
-                      >
-                        <Picker.Item label="Select your state" value="" />
-                        {states.map((s) => (
-                          <Picker.Item
-                            key={s.code}
-                            label={s.code}
-                            value={s.code} // Sends only the code (NSW, VIC, etc.)
-                          />
-                        ))}
-                      </Picker>
-                    </View>
-                  )}
+                    onPress={() => setShowStatePicker(true)}
+                  >
+                    <Text style={{ color: formData.state ? "#000" : "#999" }}>
+                      {formData.state || "State *"}
+                    </Text>
+                  </TouchableOpacity>
                   {formErrors.state && (
                     <Text style={styles.errorText}>{formErrors.state}</Text>
                   )}
                 </View>
-
                 <View style={tw`w-1/4`}>
                   <TextInput
                     style={[
@@ -3341,7 +3263,7 @@ const ChatScreen = ({ navigation }) => {
           />
         ) : (
           <Modal transparent animationType="slide">
-            <View style={tw`flex-1 justify-end bg-black/50`}>
+            <View style={tw`flex-1 justify-end `}>
               <View style={tw`bg-white rounded-t-2xl p-4`}>
                 <View style={tw`flex-row justify-between items-center mb-4`}>
                   <TouchableOpacity onPress={handleCancel} style={tw`p-2`}>
@@ -3370,6 +3292,51 @@ const ChatScreen = ({ navigation }) => {
             </View>
           </Modal>
         ))}
+      {showStatePicker && (
+        <Modal transparent animationType="slide">
+          <View style={tw`flex-1 justify-end bg-black/50`}>
+            <View style={tw`bg-white rounded-t-2xl p-4`}>
+              <View style={tw`flex-row justify-between items-center mb-4`}>
+                <TouchableOpacity
+                  onPress={() => setShowStatePicker(false)}
+                  style={tw`p-2`}
+                >
+                  <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
+                </TouchableOpacity>
+                <Text
+                  style={tw`text-center flex-1 font-semibold text-gray-700`}
+                >
+                  Select State
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowStatePicker(false)}
+                  style={tw`p-2`}
+                >
+                  <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              {loadingStates ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+              ) : (
+                <ScrollView>
+                  {states.map((state, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => {
+                        handleFormChange("state", state.code);
+                        setShowStatePicker(false);
+                      }}
+                      style={tw`p-4 border-b border-gray-200`}
+                    >
+                      <Text>{state.code}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 };
