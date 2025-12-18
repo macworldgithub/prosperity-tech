@@ -1661,8 +1661,6 @@
 // });
 // export default ChatScreen;
 
-
-
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -1755,6 +1753,9 @@ const ChatScreen = ({ navigation }) => {
   const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
   const [otpVerified, setOtpVerified] = useState(false);
   const [user, setUser] = useState(null);
+  const [states, setStates] = useState([]);
+  const [showStatePicker, setShowStatePicker] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
   useEffect(() => {
     const loadSelectedPlan = async () => {
       try {
@@ -1789,6 +1790,16 @@ const ChatScreen = ({ navigation }) => {
   useEffect(() => {
     fetchUserData();
   }, []);
+  useEffect(() => {
+    if (showStatePicker && states.length === 0) {
+      setLoadingStates(true);
+      fetch("https://prosperity.omnisuiteai.com/states")
+        .then((res) => res.json())
+        .then((data) => setStates(data))
+        .catch((err) => console.error("Failed to fetch states:", err))
+        .finally(() => setLoadingStates(false));
+    }
+  }, [showStatePicker]);
   const fetchUserData = async () => {
     try {
       const token = await AsyncStorage.getItem("access_token");
@@ -2935,16 +2946,18 @@ const ChatScreen = ({ navigation }) => {
                   )}
                 </View>
                 <View style={tw`w-1/4 mr-2`}>
-                  <TextInput
+                  <TouchableOpacity
                     style={[
                       styles.input,
                       formErrors.state && styles.inputError,
+                      { justifyContent: "center" },
                     ]}
-                    placeholder="State *"
-                    placeholderTextColor="#999"
-                    value={formData.state}
-                    onChangeText={(text) => handleFormChange("state", text)}
-                  />
+                    onPress={() => setShowStatePicker(true)}
+                  >
+                    <Text style={{ color: formData.state ? "#000" : "#999" }}>
+                      {formData.state || "State *"}
+                    </Text>
+                  </TouchableOpacity>
                   {formErrors.state && (
                     <Text style={styles.errorText}>{formErrors.state}</Text>
                   )}
@@ -3320,6 +3333,52 @@ const ChatScreen = ({ navigation }) => {
             </View>
           </Modal>
         ))}
+      {/* State Picker Modal */}
+      {showStatePicker && (
+        <Modal transparent animationType="slide">
+          <View style={tw`flex-1 justify-end bg-black/50`}>
+            <View style={tw`bg-white rounded-t-2xl p-4`}>
+              <View style={tw`flex-row justify-between items-center mb-4`}>
+                <TouchableOpacity
+                  onPress={() => setShowStatePicker(false)}
+                  style={tw`p-2`}
+                >
+                  <Text style={tw`text-red-500 font-semibold`}>Cancel</Text>
+                </TouchableOpacity>
+                <Text
+                  style={tw`text-center flex-1 font-semibold text-gray-700`}
+                >
+                  Select State
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowStatePicker(false)}
+                  style={tw`p-2`}
+                >
+                  <Text style={tw`text-blue-500 font-semibold`}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              {loadingStates ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+              ) : (
+                <ScrollView>
+                  {states.map((state, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => {
+                        handleFormChange("state", state.code);
+                        setShowStatePicker(false);
+                      }}
+                      style={tw`p-4 border-b border-gray-200`}
+                    >
+                      <Text>{state.code}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 };
