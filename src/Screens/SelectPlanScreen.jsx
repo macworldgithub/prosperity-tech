@@ -5,11 +5,13 @@ import {
   FlatList,
   Pressable,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import tw from "tailwind-react-native-classnames";
 import { API_BASE_URL } from "../utils/config";
+import { Ionicons } from "@expo/vector-icons";
 
 const SelectPlanScreen = () => {
   const navigation = useNavigation();
@@ -111,12 +113,18 @@ const SelectPlanScreen = () => {
   return (
     <View style={tw`flex-1 bg-gray-100`}>
       {/* Screen Header */}
-      <View style={tw`px-4 pt-6 pb-4`}>
-        <Text style={tw`text-2xl font-bold text-gray-900`}>Select a Plan</Text>
-        <Text style={tw`text-gray-500 mt-1`}>
-          Choose the best eSIM plan for your needs
+
+      <View style={tw`flex-row items-center px-4 py-3 mt-12`}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+        <Text style={tw`text-black text-xl font-semibold ml-16`}>
+          Select a Plan
         </Text>
       </View>
+      <Text style={tw`text-gray-500 mt-1 px-8 mb-4`}>
+        Choose the best eSIM plan for your needs
+      </Text>
 
       {/* Plans List */}
       <FlatList

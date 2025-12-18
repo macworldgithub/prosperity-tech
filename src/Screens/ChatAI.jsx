@@ -1661,9 +1661,7 @@
 // });
 // export default ChatScreen;
 
-
-
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -1689,6 +1687,7 @@ import { PaymentCard } from "../components/PaymentCard";
 import { API_BASE_URL } from "../utils/config";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
+import { useFocusEffect } from "@react-navigation/native";
 const ChatScreen = ({ navigation }) => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([
@@ -1759,6 +1758,15 @@ const ChatScreen = ({ navigation }) => {
   const [states, setStates] = useState([]);
   const [loadingStates, setLoadingStates] = useState(true);
   const [showStatePicker, setShowStatePicker] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        AsyncStorage.removeItem("selectedPlan");
+      };
+    }, [])
+  );
+
   useEffect(() => {
     const loadSelectedPlan = async () => {
       try {
@@ -1793,7 +1801,6 @@ const ChatScreen = ({ navigation }) => {
   useEffect(() => {
     fetchUserData();
   }, []);
-
   useEffect(() => {
     if (showStatePicker && states.length === 0) {
       setLoadingStates(true);
