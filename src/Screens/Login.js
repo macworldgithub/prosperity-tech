@@ -419,6 +419,26 @@ const Login = () => {
               </Text>
             </Pressable>
 
+            <Pressable
+              onPress={() => navigation.navigate("SelectPlan")}
+              style={({ pressed }) => [
+                tw`border py-2 rounded-lg mb-1`,
+                {
+                  borderColor: theme.colors.primary,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  tw`text-center font-semibold`,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                Buy an esim
+              </Text>
+            </Pressable>
+            
             <Text style={tw`text-center text-black text-xl`}>or</Text>
 
             <Pressable

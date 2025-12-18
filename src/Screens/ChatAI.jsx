@@ -1661,6 +1661,8 @@
 // });
 // export default ChatScreen;
 
+
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -1757,6 +1759,37 @@ const ChatScreen = ({ navigation }) => {
   const [states, setStates] = useState([]);
   const [loadingStates, setLoadingStates] = useState(true);
   const [showStatePicker, setShowStatePicker] = useState(false);
+  useEffect(() => {
+    const loadSelectedPlan = async () => {
+      try {
+        const storedPlan = await AsyncStorage.getItem("selectedPlan");
+        if (storedPlan) {
+          const plan = JSON.parse(storedPlan);
+
+          setSelectedPlan(plan);
+          setPlanNo(String(plan.planNo));
+          setChat((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              type: "bot",
+              text: `You have already selected the plan:\n\n${plan.planName} — $${plan.price}`,
+              time: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
+          ]);
+          setShowSignupForm(true);
+        }
+      } catch (err) {
+        console.error("Failed to load selected plan:", err);
+      }
+    };
+
+    loadSelectedPlan();
+  }, []);
+
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -2028,12 +2061,22 @@ const ChatScreen = ({ navigation }) => {
     setNumType("prepaid");
     setShowNumTypeSelection(false);
     setLoading(true);
-    await handleSend(`numType: prepaid`, false, true, true);
-    setLoading(false);
-    addBotMessage(
-      `Thanks for signup and enter existing number ${existingNumber}. Now please choose a plan.`
-    );
-    await fetchPlansAndShow();
+    if (!selectedPlan) {
+      addBotMessage(
+        `Thanks for signup and enter existing number ${existingNumber}. Now please choose a plan.`
+      );
+      await fetchPlansAndShow();
+    } else {
+      addBotMessage(
+        `We’ll continue with your selected plan: ${selectedPlan.planName}`
+      );
+
+      if (isPorting && !otpVerified) {
+        setShowOtpInput(true);
+      } else {
+        setShowPayment(true);
+      }
+    }
   };
   const handlePostpaid = () => {
     setNumType("postpaid");
@@ -2315,6 +2358,16 @@ const ChatScreen = ({ navigation }) => {
     setLoading(true);
     await handleSend(number, false, true, false);
     setLoading(false);
+    if (selectedPlan) {
+      addBotMessage(
+        `We’ll continue with your selected plan: ${selectedPlan.planName}`
+      );
+
+      if (!isPorting) {
+        setShowPayment(true);
+      }
+      return;
+    }
     // Fetch plans after number selection
     try {
       const plansResponse = await fetch(`${API_BASE_URL}api/v1/plans`, {
@@ -2747,7 +2800,7 @@ const ChatScreen = ({ navigation }) => {
             </View>
           )}
           {/* Plans Selection */}
-          {showPlans && plans.length > 0 && (
+          {showPlans && plans.length > 0 && !selectedPlan && (
             <View style={[tw`mt-6 flex-row items-start`, { maxWidth: "90%" }]}>
               <LinearGradient
                 colors={theme.AIgradients.linear}
@@ -3139,10 +3192,18 @@ const ChatScreen = ({ navigation }) => {
                     true
                   );
                   setLoading(false);
-                  addBotMessage(
-                    `Great! We'll port your existing number ${existingNumber}. Now please choose a plan.`
-                  );
-                  await fetchPlansAndShow();
+                  const storedPlan = await AsyncStorage.getItem("selectedPlan");
+                  if (!storedPlan) {
+                    addBotMessage(
+                      `Great! We'll port your existing number ${existingNumber}. Now please choose a plan.`
+                    );
+                    await fetchPlansAndShow();
+                  } else {
+                    addBotMessage(
+                      "We’ll continue with your previously selected plan."
+                    );
+                    setShowPayment(true);
+                  }
                 }}
               >
                 <Text style={styles.buttonText}>Yes</Text>
