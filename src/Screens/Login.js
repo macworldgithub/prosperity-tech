@@ -343,7 +343,7 @@ const Login = () => {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            marginTop: 210,
+            marginTop: 100,
             // justifyContent: "center",
             paddingHorizontal: 24,
           }}
