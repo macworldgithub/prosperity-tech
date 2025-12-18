@@ -1661,6 +1661,8 @@
 // });
 // export default ChatScreen;
 
+
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -2968,7 +2970,7 @@ const ChatScreen = ({ navigation }) => {
               <View style={tw`mb-3`}>
                 <TextInput
                   style={[styles.input, formErrors.pin && styles.inputError]}
-                  placeholder="4-digit PIN *"
+                  placeholder="Create your PIN number"
                   placeholderTextColor="#999"
                   secureTextEntry
                   keyboardType="number-pad"
