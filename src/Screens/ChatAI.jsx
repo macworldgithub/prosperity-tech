@@ -2937,12 +2937,9 @@ const ChatScreen = ({ navigation }) => {
                 </View>
               </View>
               <View style={tw`mb-3`}>
-                <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>
-                  Create your 4-digit PIN *
-                </Text>
                 <TextInput
                   style={[styles.input, formErrors.pin && styles.inputError]}
-                  placeholder="Create your PIN"
+                  placeholder="Create your PIN number"
                   placeholderTextColor="#999"
                   secureTextEntry
                   keyboardType="number-pad"
@@ -2958,9 +2955,6 @@ const ChatScreen = ({ navigation }) => {
                 {formErrors.pin && (
                   <Text style={styles.errorText}>{formErrors.pin}</Text>
                 )}
-                <Text style={tw`text-xs text-gray-500 mt-1`}>
-                  This PIN will be used to securely log in to your account
-                </Text>
               </View>
               <View style={tw`flex-row justify-between`}>
                 <TouchableOpacity
