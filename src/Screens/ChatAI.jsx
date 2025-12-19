@@ -90,7 +90,7 @@ const ChatScreen = ({ navigation }) => {
   const [hasValidSession, setHasValidSession] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-  const [otpTransactionId, setOtpTransactionId] = useState(""); // to track OTP
+  const [otpTransactionId, setOtpTransactionId] = useState(""); 
   const [otpVerified, setOtpVerified] = useState(false);
   const [user, setUser] = useState(null);
   const [states, setStates] = useState([]);
@@ -361,10 +361,8 @@ const ChatScreen = ({ navigation }) => {
   };
   const handleFormSubmit = async () => {
     if (!validateForm()) return;
-    // Construct full address as per desired payload
     const fullAddress = `${formData.address.trim()}, ${formData.suburb.trim()} ${formData.state.trim()} ${formData.postcode.trim()}, Australia`;
     try {
-      // Store the form data with full address
       const formDataCopy = {
         ...formData,
         firstName: formData.firstName.trim(),
@@ -376,7 +374,6 @@ const ChatScreen = ({ navigation }) => {
       };
       setSubmittedSignupDetails(formDataCopy);
       await AsyncStorage.setItem("dob", formatDob(formData.dob));
-      // Reset form data
       setFormData({
         firstName: "",
         surname: "",
