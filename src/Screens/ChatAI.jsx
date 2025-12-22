@@ -90,7 +90,7 @@ const ChatScreen = ({ navigation }) => {
   const [hasValidSession, setHasValidSession] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-  const [otpTransactionId, setOtpTransactionId] = useState(""); 
+  const [otpTransactionId, setOtpTransactionId] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
   const [user, setUser] = useState(null);
   const [states, setStates] = useState([]);
@@ -460,10 +460,18 @@ const ChatScreen = ({ navigation }) => {
         }
       );
       const data = await res.json();
+      console.log("Initial OTP Response:", data);
       if (!res.ok) throw new Error(data.message || "OTP request failed");
+      const newTransactionId = data?.data?.getOtp?.transactionId;
+      if (!newTransactionId) {
+        throw new Error("Invalid response: missing transactionId");
+      }
+
       setLoading(true);
       setLoading(false);
-      setOtpTransactionId(data.transactionId);
+      setOtpTransactionId(newTransactionId);
+      console.log("Initial transactionId set:", newTransactionId);
+      // setOtpTransactionId(data.transactionId);
       setSelectedSim(existingNumber);
       setShowExistingNumberInput(false);
       setShowNumTypeSelection(true);
@@ -911,9 +919,14 @@ const ChatScreen = ({ navigation }) => {
   };
   const handleOtpVerify = async () => {
     if (otpCode.length !== 6) {
-      alert("Please enter a 6-digit OTP");
+      setFormErrors((prev) => ({ ...prev, otp: "Please enter a 6-digit OTP" }));
       return;
     }
+
+    console.log("Verifying OTP...");
+    console.log("OTP Code:", otpCode);
+    console.log("transactionId:", otpTransactionId);
+
     try {
       const res = await fetch(
         "https://prosperity.omnisuiteai.com/api/v1/auth/otp/verify",
@@ -926,19 +939,50 @@ const ChatScreen = ({ navigation }) => {
           }),
         }
       );
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "OTP verification failed");
+      console.log("OTP Verify API Response:", data);
+
+     
+      const verifyResult = data?.data?.verifyOtp;
+
+      if (!verifyResult || verifyResult.valid !== true) {
+       
+        const errorMsg =
+          verifyResult?.message || "Invalid OTP. Please try again.";
+        const attemptsLeft = verifyResult?.remainingAttempts;
+
+        let fullError = errorMsg;
+        if (attemptsLeft !== undefined && attemptsLeft > 0) {
+          fullError += ` (${attemptsLeft} attempt${
+            attemptsLeft === 1 ? "" : "s"
+          } left)`;
+        } else if (attemptsLeft === 0) {
+          fullError += " (No attempts left. Please request a new OTP.)";
+        }
+
+        setFormErrors((prev) => ({ ...prev, otp: fullError }));
+        Alert.alert("Invalid OTP", fullError);
+        return;
+      }
+
+     
       setOtpVerified(true);
+      setShowOtpInput(false);
+      setFormErrors((prev) => ({ ...prev, otp: undefined }));
+
+      addBotMessage("OTP verified successfully! Proceeding to payment...");
+
       if (selectedPlan) {
         setShowPayment(true);
       }
-      setShowOtpInput(false);
-      addBotMessage(
-        "OTP verified successfully! You can now proceed to payment."
-      );
     } catch (err) {
-      console.error(err);
-      addBotMessage("OTP verification failed. Please try again.");
+      console.error("OTP Verification Failed:", err.message);
+      setFormErrors((prev) => ({
+        ...prev,
+        otp: err.message || "Verification failed. Please try again.",
+      }));
+      Alert.alert("Error", err.message || "Something went wrong.");
     }
   };
   const handleActivateOrder = async () => {
@@ -994,7 +1038,7 @@ const ChatScreen = ({ navigation }) => {
         body: JSON.stringify(payload),
       });
       const result = await res.json();
-      // Clear old success/error messages
+    
       setChat((prev) =>
         prev.filter(
           (m) =>
@@ -1698,39 +1742,130 @@ const ChatScreen = ({ navigation }) => {
         {showOtpInput && (
           <View
             style={[
-              tw`flex flex-col items-center gap-3 p-4 rounded-lg border`,
+              tw`flex flex-col items-center gap-4 p-5 rounded-2xl border-2 mb-20 mx-4`,
               {
-                backgroundColor: "rgba(255,255,255,0.1)",
-                borderColor: "rgba(255,255,255,0.3)",
+                backgroundColor: "rgba(255,255,255,0.95)",
+                borderColor: "#10B981",
               },
             ]}
           >
-            <Text style={tw`text-white text-sm sm:text-base text-center`}>
-              Enter the OTP sent to your existing number:
+            <Text style={tw`text-black text-base font-semibold text-center`}>
+              Enter the 6-digit OTP sent to:
             </Text>
+            <Text style={tw`text-black text-lg font-bold`}>
+              {existingNumber || selectedSim}
+            </Text>
+
             <TextInput
               maxLength={6}
               value={otpCode}
               onChangeText={(text) => setOtpCode(text.replace(/\D/g, ""))}
               style={[
-                tw`w-full p-2 rounded border text-center text-white text-sm sm:text-base`,
+                tw`w-full p-4 rounded-xl border-2 text-center text-black text-xl tracking-widest`,
                 {
-                  backgroundColor: "transparent",
-                  borderColor: "rgba(255,255,255,0.5)",
+                  backgroundColor: "#f0f0f0",
+                  borderColor: otpCode.length === 6 ? "#10B981" : "#ccc",
                 },
               ]}
-              placeholder="Enter 6-digit OTP"
-              placeholderTextColor="rgba(255,255,255,0.5)"
+              placeholder="------"
+              placeholderTextColor="#999"
               keyboardType="numeric"
             />
-            <TouchableOpacity
-              onPress={handleOtpVerify}
-              style={[tw`px-4 py-1 rounded`, { backgroundColor: "#2bb673" }]}
-            >
-              <Text style={tw`text-white text-xs sm:text-sm text-center`}>
-                Verify OTP
+
+            {/* Error message if verification failed */}
+            {formErrors?.otp && (
+              <Text style={tw`text-red-600 text-sm font-medium`}>
+                {formErrors.otp}
               </Text>
-            </TouchableOpacity>
+            )}
+
+            <View style={tw`flex-row justify-center gap-4 w-full mb-2`}>
+              {/* Verify OTP Button */}
+              <TouchableOpacity
+                onPress={handleOtpVerify}
+                style={tw`flex-1 py-2 rounded-xl bg-green-600`}
+                disabled={otpCode.length !== 6}
+              >
+                <Text style={tw`text-white text-center text-base`}>
+                  Verify OTP
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={tw`flex-row justify-center gap-4 w-full`}>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!custNo || !existingNumber) {
+                    Alert.alert("Error", "Missing customer or number info.");
+                    return;
+                  }
+
+                  try {
+                    console.log("🔄 Resending OTP...");
+                    console.log("custNo:", custNo);
+                    console.log("destination number:", existingNumber);
+
+                    const res = await fetch(
+                      "https://prosperity.omnisuiteai.com/api/v1/auth/otp",
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          custNo,
+                          destination: existingNumber,
+                        }),
+                      }
+                    );
+
+                    const data = await res.json();
+                    console.log("Resend OTP API Full Response:", data);
+
+                    if (!res.ok) {
+                      throw new Error(data.message || "Failed to resend OTP");
+                    }
+
+                   
+                    const newTransactionId = data?.data?.getOtp?.transactionId;
+
+                    if (!newTransactionId) {
+                      console.error(
+                        "No transactionId found in resend response!"
+                      );
+                      Alert.alert(
+                        "Error",
+                        "Failed to get new OTP session. Please try again."
+                      );
+                      return;
+                    }
+
+                    setOtpTransactionId(newTransactionId);
+                    console.log("✅ New transactionId set:", newTransactionId);
+
+                    setOtpCode(""); 
+                    setFormErrors((prev) => ({ ...prev, otp: undefined })); 
+
+                    addBotMessage(
+                      "New OTP sent successfully! Please check your phone."
+                    );
+                    Alert.alert(
+                      "Success",
+                      "A new OTP has been sent to your number."
+                    );
+                  } catch (err) {
+                    console.error("Resend OTP failed:", err);
+                    Alert.alert(
+                      "Error",
+                      err.message || "Failed to resend OTP. Try again."
+                    );
+                  }
+                }}
+                style={tw`flex-1 py-2 rounded-xl bg-green-600`}
+              >
+                <Text style={tw`text-white text-center text-base`}>
+                  Resend OTP
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         {/* Payment Flow Components */}

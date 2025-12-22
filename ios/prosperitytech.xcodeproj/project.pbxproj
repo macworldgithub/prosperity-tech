@@ -7,29 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		013058A027E360912BC38BA6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0C0773765FCB18D274221D5A /* PrivacyInfo.xcprivacy */; };
+		05F867FB1C2E59D26D57AF01 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28BCE8B457FE94C73D4B2E7 /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		7748F28C228ED98284F42A5B /* libPods-prosperitytech.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CF89453E6F6C4C27FFCAA7A /* libPods-prosperitytech.a */; };
-		8C4311E007230C7EF5C3AD61 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6577FE12A13DD7D1830CD80 /* ExpoModulesProvider.swift */; };
+		69D685A109241470AE790D60 /* libPods-prosperitytech.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 10753C51BED6A6D941D5ED00 /* libPods-prosperitytech.a */; };
+		7151FEF13B4A5D7E92E7E05C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E25407D41734326E8F7DCA76 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0C0773765FCB18D274221D5A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = prosperitytech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		10753C51BED6A6D941D5ED00 /* libPods-prosperitytech.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-prosperitytech.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* prosperitytech.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = prosperitytech.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = prosperitytech/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = prosperitytech/Info.plist; sourceTree = "<group>"; };
-		6062C837F6422F538157AACD /* Pods-prosperitytech.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prosperitytech.release.xcconfig"; path = "Target Support Files/Pods-prosperitytech/Pods-prosperitytech.release.xcconfig"; sourceTree = "<group>"; };
-		7CF89453E6F6C4C27FFCAA7A /* libPods-prosperitytech.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-prosperitytech.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		50966534331132F8C4626FE6 /* Pods-prosperitytech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prosperitytech.debug.xcconfig"; path = "Target Support Files/Pods-prosperitytech/Pods-prosperitytech.debug.xcconfig"; sourceTree = "<group>"; };
+		5C242725FA0687F53A856AA7 /* Pods-prosperitytech.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prosperitytech.release.xcconfig"; path = "Target Support Files/Pods-prosperitytech/Pods-prosperitytech.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = prosperitytech/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		DC41211DAB52568E7D2C8A7B /* Pods-prosperitytech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-prosperitytech.debug.xcconfig"; path = "Target Support Files/Pods-prosperitytech/Pods-prosperitytech.debug.xcconfig"; sourceTree = "<group>"; };
+		E25407D41734326E8F7DCA76 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = prosperitytech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E28BCE8B457FE94C73D4B2E7 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-prosperitytech/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = prosperitytech/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* prosperitytech-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "prosperitytech-Bridging-Header.h"; path = "prosperitytech/prosperitytech-Bridging-Header.h"; sourceTree = "<group>"; };
-		F6577FE12A13DD7D1830CD80 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-prosperitytech/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7748F28C228ED98284F42A5B /* libPods-prosperitytech.a in Frameworks */,
+				69D685A109241470AE790D60 /* libPods-prosperitytech.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,35 +53,26 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				0C0773765FCB18D274221D5A /* PrivacyInfo.xcprivacy */,
+				E25407D41734326E8F7DCA76 /* PrivacyInfo.xcprivacy */,
 			);
 			name = prosperitytech;
-			sourceTree = "<group>";
-		};
-		2B129585932502C9A7D28CF5 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				BEFB938771665C70A0538151 /* prosperitytech */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				7CF89453E6F6C4C27FFCAA7A /* libPods-prosperitytech.a */,
+				10753C51BED6A6D941D5ED00 /* libPods-prosperitytech.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		4D05772B869CEB7A67C51A03 /* Pods */ = {
+		71A9D26BB67614C3134653BF /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				DC41211DAB52568E7D2C8A7B /* Pods-prosperitytech.debug.xcconfig */,
-				6062C837F6422F538157AACD /* Pods-prosperitytech.release.xcconfig */,
+				CC0D5327C3A18126101F159A /* prosperitytech */,
 			);
-			path = Pods;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -98,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				2B129585932502C9A7D28CF5 /* ExpoModulesProviders */,
-				4D05772B869CEB7A67C51A03 /* Pods */,
+				F83AF50A58A2AA9E22B48EAE /* Pods */,
+				71A9D26BB67614C3134653BF /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -123,12 +114,21 @@
 			path = prosperitytech/Supporting;
 			sourceTree = "<group>";
 		};
-		BEFB938771665C70A0538151 /* prosperitytech */ = {
+		CC0D5327C3A18126101F159A /* prosperitytech */ = {
 			isa = PBXGroup;
 			children = (
-				F6577FE12A13DD7D1830CD80 /* ExpoModulesProvider.swift */,
+				E28BCE8B457FE94C73D4B2E7 /* ExpoModulesProvider.swift */,
 			);
 			name = prosperitytech;
+			sourceTree = "<group>";
+		};
+		F83AF50A58A2AA9E22B48EAE /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				50966534331132F8C4626FE6 /* Pods-prosperitytech.debug.xcconfig */,
+				5C242725FA0687F53A856AA7 /* Pods-prosperitytech.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -138,14 +138,14 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "prosperitytech" */;
 			buildPhases = (
-				0CB810EB4F549A98505AAC61 /* [CP] Check Pods Manifest.lock */,
-				F7D70D76D298425B3ED33070 /* [Expo] Configure project */,
+				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
+				53C41815C67EA7A4713AE1E8 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				FE2CF4B46A4840879607B06F /* [CP] Embed Pods Frameworks */,
-				71C27E9B0D5C01DE65E66CF8 /* [CP] Copy Pods Resources */,
+				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
+				CC3CCFE1806FE2A140076384 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -195,7 +195,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				013058A027E360912BC38BA6 /* PrivacyInfo.xcprivacy in Resources */,
+				7151FEF13B4A5D7E92E7E05C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,7 +219,7 @@
 			shellPath = /bin/sh;
 			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios absolute | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
 		};
-		0CB810EB4F549A98505AAC61 /* [CP] Check Pods Manifest.lock */ = {
+		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -241,7 +241,31 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		71C27E9B0D5C01DE65E66CF8 /* [CP] Copy Pods Resources */ = {
+		53C41815C67EA7A4713AE1E8 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/prosperitytech/prosperitytech.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-prosperitytech/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-prosperitytech/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-prosperitytech/expo-configure-project.sh\"\n";
+		};
+		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -271,31 +295,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-prosperitytech/Pods-prosperitytech-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		F7D70D76D298425B3ED33070 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/prosperitytech/prosperitytech.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-prosperitytech/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-prosperitytech/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-prosperitytech/expo-configure-project.sh\"\n";
-		};
-		FE2CF4B46A4840879607B06F /* [CP] Embed Pods Frameworks */ = {
+		CC3CCFE1806FE2A140076384 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -325,7 +325,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				8C4311E007230C7EF5C3AD61 /* ExpoModulesProvider.swift in Sources */,
+				05F867FB1C2E59D26D57AF01 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,7 +334,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DC41211DAB52568E7D2C8A7B /* Pods-prosperitytech.debug.xcconfig */;
+			baseConfigurationReference = 50966534331132F8C4626FE6 /* Pods-prosperitytech.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -371,7 +371,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6062C837F6422F538157AACD /* Pods-prosperitytech.release.xcconfig */;
+			baseConfigurationReference = 5C242725FA0687F53A856AA7 /* Pods-prosperitytech.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
