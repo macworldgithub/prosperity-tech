@@ -106,37 +106,6 @@ const ChatScreen = ({ navigation }) => {
     }, [])
   );
 
-  useEffect(() => {
-    const loadSelectedPlan = async () => {
-      try {
-        const storedPlan = await AsyncStorage.getItem("selectedPlan");
-        if (storedPlan) {
-          const plan = JSON.parse(storedPlan);
-
-          setSelectedPlan(plan);
-          setPlanNo(String(plan.planNo));
-          setChat((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              type: "bot",
-              text: `You have already selected the plan:\n\n${plan.planName} — $${plan.price}`,
-              time: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            },
-          ]);
-          setShowSignupForm(true);
-          setShowInitialOptions(false);
-        }
-      } catch (err) {
-        console.error("Failed to load selected plan:", err);
-      }
-    };
-
-    loadSelectedPlan();
-  }, []);
 
   useEffect(() => {
     fetchUserData();
