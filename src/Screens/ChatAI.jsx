@@ -2008,7 +2008,7 @@ const ChatScreen = ({ navigation }) => {
       {showAuthorityTypePicker && (
         <Modal transparent animationType="fade">
           <View style={tw`flex-1 justify-center items-center`}>
-            <View style={tw`bg-white rounded-lg p-5 w-11/12 max-h-96`}>
+            <View style={tw`bg-gray-200 rounded-xl p-6 w-11/12 max-h-96 mt-16`}>
               <Text style={tw`text-lg font-bold mb-4`}>
                 Select Authority Type
               </Text>
