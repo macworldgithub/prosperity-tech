@@ -73,6 +73,8 @@ const ChatScreen = ({ navigation }) => {
     state: "",
     postcode: "",
     pin: "",
+    custAuthorityType: "",
+    custAuthorityNo: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [orderActivated, setOrderActivated] = useState(false);
@@ -98,6 +100,8 @@ const ChatScreen = ({ navigation }) => {
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showInitialOptions, setShowInitialOptions] = useState(true);
   const [isTransferFlow, setIsTransferFlow] = useState(false);
+  const [showAuthorityTypePicker, setShowAuthorityTypePicker] = useState(false);
+  const [custAuthorityType, setCustAuthorityType] = useState("");
   useFocusEffect(
     useCallback(() => {
       return () => {
@@ -105,7 +109,6 @@ const ChatScreen = ({ navigation }) => {
       };
     }, [])
   );
-
 
   useEffect(() => {
     fetchUserData();
@@ -147,7 +150,7 @@ const ChatScreen = ({ navigation }) => {
               }),
             },
           ]);
-          setShowSignupForm(true);
+          setShowSignupForm(false);
         }
       } catch (err) {
         console.error("Failed to load selected plan:", err);
@@ -801,6 +804,7 @@ const ChatScreen = ({ navigation }) => {
     }`;
     await handleSend(planText);
     if (isPorting && !otpVerified) {
+      setLoading(false);
       setShowOtpInput(true);
       addBotMessage(
         "Please enter the OTP sent earlier to continue to payment."
@@ -912,11 +916,9 @@ const ChatScreen = ({ navigation }) => {
       const data = await res.json();
       console.log("OTP Verify API Response:", data);
 
-     
       const verifyResult = data?.data?.verifyOtp;
 
       if (!verifyResult || verifyResult.valid !== true) {
-       
         const errorMsg =
           verifyResult?.message || "Invalid OTP. Please try again.";
         const attemptsLeft = verifyResult?.remainingAttempts;
@@ -935,7 +937,6 @@ const ChatScreen = ({ navigation }) => {
         return;
       }
 
-     
       setOtpVerified(true);
       setShowOtpInput(false);
       setFormErrors((prev) => ({ ...prev, otp: undefined }));
@@ -1007,7 +1008,7 @@ const ChatScreen = ({ navigation }) => {
         body: JSON.stringify(payload),
       });
       const result = await res.json();
-    
+
       setChat((prev) =>
         prev.filter(
           (m) =>
@@ -1479,6 +1480,62 @@ const ChatScreen = ({ navigation }) => {
                   <Text style={styles.errorText}>{formErrors.pin}</Text>
                 )}
               </View>
+
+              {/* Customer Authority Number */}
+              <View style={tw`mb-2`}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    formErrors.custAuthorityNo && styles.inputError,
+                  ]}
+                  placeholder="Customer Authority Number *"
+                  placeholderTextColor="#999"
+                  maxLength={20}
+                  value={formData.custAuthorityNo}
+                  onChangeText={(text) =>
+                    handleFormChange("custAuthorityNo", text)
+                  }
+                />
+                {formErrors.custAuthorityNo && (
+                  <Text style={styles.errorText}>
+                    {formErrors.custAuthorityNo}
+                  </Text>
+                )}
+              </View>
+              {/* Customer Authority Type - Dropdown/Picker */}
+              <View style={tw`mb-2`}>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    formErrors.custAuthorityType && styles.inputError,
+                    { justifyContent: "center", paddingVertical: 12 },
+                  ]}
+                  onPress={() => setShowAuthorityTypePicker(true)}
+                >
+                  <Text
+                    style={{
+                      color: formData.custAuthorityType ? "#000" : "#999",
+                    }}
+                  >
+                    {formData.custAuthorityType
+                      ? {
+                          AC: "AC: Customer Number and Account Password",
+                          DL: "DL: Driver License No",
+                          PA: "PA: Passport No",
+                          PI: "PI: Photo ID Type",
+                          PN: "PN: Pensioner Card No",
+                          UB: "UB: Utility Bill",
+                        }[formData.custAuthorityType] ||
+                        formData.custAuthorityType
+                      : "Customer Authority Type *"}
+                  </Text>
+                </TouchableOpacity>
+                {formErrors.custAuthorityType && (
+                  <Text style={styles.errorText}>
+                    {formErrors.custAuthorityType}
+                  </Text>
+                )}
+              </View>
               <View style={tw`flex-row justify-between`}>
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}
@@ -1711,7 +1768,7 @@ const ChatScreen = ({ navigation }) => {
         {showOtpInput && (
           <View
             style={[
-              tw`flex flex-col items-center gap-4 p-5 rounded-2xl border-2 mb-20 mx-4`,
+              tw`flex flex-col items-center p-5 rounded-2xl border-2 mb-10 mx-4`,
               {
                 backgroundColor: "rgba(255,255,255,0.95)",
                 borderColor: "#10B981",
@@ -1730,7 +1787,7 @@ const ChatScreen = ({ navigation }) => {
               value={otpCode}
               onChangeText={(text) => setOtpCode(text.replace(/\D/g, ""))}
               style={[
-                tw`w-full p-4 rounded-xl border-2 text-center text-black text-xl tracking-widest`,
+                tw`w-full p-4 rounded-xl border-2 text-center text-black text-xl tracking-widest mb-2`,
                 {
                   backgroundColor: "#f0f0f0",
                   borderColor: otpCode.length === 6 ? "#10B981" : "#ccc",
@@ -1793,7 +1850,6 @@ const ChatScreen = ({ navigation }) => {
                       throw new Error(data.message || "Failed to resend OTP");
                     }
 
-                   
                     const newTransactionId = data?.data?.getOtp?.transactionId;
 
                     if (!newTransactionId) {
@@ -1810,8 +1866,8 @@ const ChatScreen = ({ navigation }) => {
                     setOtpTransactionId(newTransactionId);
                     console.log("✅ New transactionId set:", newTransactionId);
 
-                    setOtpCode(""); 
-                    setFormErrors((prev) => ({ ...prev, otp: undefined })); 
+                    setOtpCode("");
+                    setFormErrors((prev) => ({ ...prev, otp: undefined }));
 
                     addBotMessage(
                       "New OTP sent successfully! Please check your phone."
@@ -1927,6 +1983,48 @@ const ChatScreen = ({ navigation }) => {
             </View>
           </Modal>
         ))}
+      {/* Authority Type Picker Modal */}
+      {showAuthorityTypePicker && (
+        <Modal transparent animationType="fade">
+          <View style={tw`flex-1 justify-center items-center`}>
+            <View style={tw`bg-white rounded-lg p-5 w-11/12 max-h-96`}>
+              <Text style={tw`text-lg font-bold mb-4`}>
+                Select Authority Type
+              </Text>
+              <ScrollView>
+                {[
+                  {
+                    code: "AC",
+                    label: "Customer Number and Account Password",
+                  },
+                  { code: "DL", label: "Driver License No" },
+                  { code: "PA", label: "Passport No" },
+                  { code: "PI", label: "Photo ID Type" },
+                  { code: "PN", label: "Pensioner Card No" },
+                  { code: "UB", label: "Utility Bill" },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.code}
+                    style={tw`py-3 border-b border-gray-200`}
+                    onPress={() => {
+                      handleFormChange("custAuthorityType", item.label);
+                      setShowAuthorityTypePicker(false);
+                    }}
+                  >
+                    <Text style={tw`text-base`}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={tw`mt-4 bg-green-500 py-3 rounded`}
+                onPress={() => setShowAuthorityTypePicker(false)}
+              >
+                <Text style={tw`text-white text-center font-bold`}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
       {showStatePicker && (
         <Modal transparent animationType="slide">
           <View style={tw`flex-1 justify-end bg-black/50`}>
