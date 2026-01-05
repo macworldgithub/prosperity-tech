@@ -481,14 +481,35 @@ const ChatScreen = ({ navigation }) => {
     setShowNumTypeSelection(false);
     setShowArnInput(true);
   };
+  // const handleArnInputConfirm = () => {
+  //   if (!arn.trim()) {
+  //     Alert.alert("Error", "Please enter a valid ARN.");
+  //     return;
+  //   }
+  //   setShowArnInput(false);
+  //   setShowArnConfirm(true);
+  // };
   const handleArnInputConfirm = () => {
     if (!arn.trim()) {
       Alert.alert("Error", "Please enter a valid ARN.");
       return;
     }
+
     setShowArnInput(false);
-    setShowArnConfirm(true);
+    setShowArnConfirm(false);
+
+    addBotMessage("Thanks! ARN received successfully.");
+    if (isPorting && !otpVerified) {
+      addBotMessage(
+        "Please enter the OTP sent earlier to continue to payment."
+      );
+      setShowOtpInput(true);
+    } else {
+      addBotMessage("Proceeding to payment.");
+      setShowPayment(true);
+    }
   };
+
   const fetchPlansAndShow = async () => {
     try {
       const plansResponse = await fetch(`${API_BASE_URL}api/v1/plans`, {
