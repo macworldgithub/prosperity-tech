@@ -864,13 +864,40 @@ const ChatScreen = ({ navigation }) => {
       },
     ]);
   };
-  const handlePhysicalSimConfirm = () => {
-    if (physicalSimNumber.length !== 13) {
+  const handlePhysicalSimConfirm = async () => {
+    const trimmedSim = physicalSimNumber.trim();
+
+    if (trimmedSim.length !== 13) {
       Alert.alert("Error", "Please enter a valid 13-digit SIM number.");
       return;
     }
-    setShowPhysicalSimInput(false);
-    setShowNumberTypeSelection(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}api/v1/numbers/check/${trimmedSim}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+      console.log(result, "Result");
+      if (!result?.data?.success) {
+        Alert.alert("Invalid SIM", "SIM number is not valid.");
+        setShowPhysicalSimInput(true);
+        return;
+      }
+
+      setShowPhysicalSimInput(false);
+      setShowNumberTypeSelection(true);
+    } catch (error) {
+      console.error("SIM validation error:", error);
+      Alert.alert("Error", "Unable to verify SIM number. Please try again.");
+      setShowPhysicalSimInput(true);
+    }
   };
   const handleTokenReceived = async (token) => {
     setPaymentToken(token);
@@ -1622,8 +1649,11 @@ const ChatScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.button, styles.submitButton, tw`mt-3`]}
                 onPress={handlePhysicalSimConfirm}
+                disabled={loading}
               >
-                <Text style={styles.buttonText}>Confirm</Text>
+                <Text style={styles.buttonText}>
+                  {loading ? "Checking..." : "Confirm"}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
